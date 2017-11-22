@@ -1,0 +1,16 @@
+---- sm_datelineSwitchGUID Matches (15 in 5 files) ----
+Sm_dbsync.c (esm\ib\src\smi\sm):		outlen = sizeof(sm_datelineSwitchGUID);
+Sm_dbsync.c (esm\ib\src\smi\sm):		datelineGUID = hton64(sm_datelineSwitchGUID);
+Sm_dbsync.c (esm\ib\src\smi\sm):					sm_datelineSwitchGUID, syncReqp->portguid, syncReqp->standbyLid);
+Sm_dbsync.c (esm\ib\src\smi\sm):		sm_datelineSwitchGUID = ntoh64(datelineGUID);
+Sm_dbsync.c (esm\ib\src\smi\sm):			IB_LOG_INFINI_INFO_FMT(__func__, "Standby rcvd Dateline Switch GUID as "FMT_U64, sm_datelineSwitchGUID);
+Sm_dor.c (esm\ib\src\smi\sm):uint64_t sm_datelineSwitchGUID;
+Sm_dor.c (esm\ib\src\smi\sm):	switchp = sm_find_guid(topop, sm_datelineSwitchGUID);
+Sm_dor.c (esm\ib\src\smi\sm):		IB_LOG_INFO_FMT(__func__, "Unable to find assigned dateline switch at 0x"FMT_U64, sm_datelineSwitchGUID);
+Sm_dor.c (esm\ib\src\smi\sm):			sm_datelineSwitchGUID = topop->switch_head->nodeInfo.NodeGUID;
+Sm_dorbiu.c (esm\ib\src\smi\sm):uint64_t sm_datelineSwitchGUID;
+Sm_dorbiu.c (esm\ib\src\smi\sm):	switchp = sm_find_guid(topop, sm_datelineSwitchGUID);
+Sm_dorbiu.c (esm\ib\src\smi\sm):		IB_LOG_INFO_FMT(__func__, "Unable to find assigned dateline switch at 0x"FMT_U64, sm_datelineSwitchGUID);
+Sm_dorbiu.c (esm\ib\src\smi\sm):			sm_datelineSwitchGUID = topop->switch_head->nodeInfo.NodeGUID;
+Sm_l.h (esm\ib\src\smi\include):extern uint64_t sm_datelineSwitchGUID;
+Sm_main.c (esm\ib\src\smi\sm):	sm_datelineSwitchGUID = 0;
