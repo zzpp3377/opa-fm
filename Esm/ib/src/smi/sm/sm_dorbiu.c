@@ -35,8 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //----------------------zp start-------------------//
 #include "sm_dor.h"
 #include "sm_dorbiu.h"
+#include <string.h>
+#include <stdlib.h>
 //----------------------zp stop--------------------//
 #include "sm_dbsync.h"
+
+
 
 extern uint8_t sm_SLtoSC[STL_MAX_SLS];
 extern uint8_t sm_SCtoSL[STL_MAX_SCS];
@@ -87,10 +91,10 @@ _dump_node_coordinates(Topology_t *topop)
 
 	for_all_switch_nodes(topop, nodep) {
 		memset((void *)c, 0, sizeof(c));
-		_coord_to_string(topop, ((DorNode_t*)nodep->routingData)->coords, c);
+		_coord_to_string(topop, ((DorBiuNode_t*)nodep->routingData)->coords, c);
 		IB_LOG_INFINI_INFO_FMT(__func__,
 		       "NodeGUID "FMT_U64" [%s]: %s Index %d",
-		       nodep->nodeInfo.NodeGUID, sm_nodeDescString(nodep), c, _lookup_index(((DorNode_t*)nodep->routingData)->coords));
+		       nodep->nodeInfo.NodeGUID, sm_nodeDescString(nodep), c, _lookup_index(((DorBiuNode_t*)nodep->routingData)->coords));
 	}
 }
 
@@ -104,10 +108,10 @@ _verify_connectivity(Topology_t *topop)
 	Node_t *switchp;
 	int i, brokenDim;
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
-	DorNode_t *switchDnp;
+	DorBiuNode_t *switchDnp;
 
 	for_all_switch_nodes(topop, switchp) {
-		switchDnp = (DorNode_t*)switchp->routingData;
+		switchDnp = (DorBiuNode_t*)switchp->routingData;
 		brokenDim = 0;
 		for (i = 0; i < dorTop->numDimensions; ++i) {
 			// check if switch isolated in single dimension
@@ -158,11 +162,11 @@ _verify_coordinates(Topology_t *topop)
 		if (!oldnodep) continue;
 
 		for (i = 0; i < smDorRouting.dimensionCount; i++) {
-			if (((DorNode_t*)switchp->routingData)->coords[i] ==
-				((DorNode_t*)oldnodep->routingData)->coords[i]) continue;
+			if (((DorBiuNode_t*)switchp->routingData)->coords[i] ==
+				((DorBiuNode_t*)oldnodep->routingData)->coords[i]) continue;
 
-			_coord_to_string(topop, ((DorNode_t*)switchp->routingData)->coords, c1);
-			_coord_to_string(topop, ((DorNode_t*)oldnodep->routingData)->coords, c2);
+			_coord_to_string(topop, ((DorBiuNode_t*)switchp->routingData)->coords, c1);
+			_coord_to_string(topop, ((DorBiuNode_t*)oldnodep->routingData)->coords, c2);
 
 			IB_LOG_INFINI_INFO_FMT(__func__,
 				"Coordinate Change: NodeGUID "FMT_U64" [%s]: old %s new %s",
@@ -178,11 +182,11 @@ _verify_dimension_lengths(Topology_t *topop)
 	Node_t *switchp;
 	int i;
 	DorTopology_t *dorTop = (DorTopology_t *)topop->routingModule->data;
-	DorNode_t *switchDnp;
+	DorBiuNode_t *switchDnp;
 	uint8_t flaggedDims = 0;
 
 	for_all_switch_nodes(topop, switchp) {
-		switchDnp = (DorNode_t*)switchp->routingData;
+		switchDnp = (DorBiuNode_t*)switchp->routingData;
 
 		for (i = 0; i < dorTop->numDimensions; ++i) {
 			// only measure toroidal dimension starting from switch at 0 coordinate
@@ -192,7 +196,7 @@ _verify_dimension_lengths(Topology_t *topop)
 			uint8_t expectedLength = dorTop->dimensionLength[i];
 			uint8_t measuredLength = 1;
 
-			DorNode_t *nextSwitch = switchDnp->right[i];
+			DorBiuNode_t *nextSwitch = switchDnp->right[i];
 			while(nextSwitch && nextSwitch != switchDnp) {
 				measuredLength++;
 				nextSwitch = nextSwitch->right[i];
@@ -234,8 +238,8 @@ _find_dimension_difference(Node_t *nodep, Node_t *neighborNodep,
 	uint8_t *dimension, int8_t *direction)
 {
 	int i, diff;
-	DorNode_t *dnodep = (DorNode_t*)nodep->routingData;
-	DorNode_t *ndnodep = (DorNode_t*)neighborNodep->routingData;
+	DorBiuNode_t *dnodep = (DorBiuNode_t*)nodep->routingData;
+	DorBiuNode_t *ndnodep = (DorBiuNode_t*)neighborNodep->routingData;
 
 	for (i = 0; i < SM_DOR_MAX_DIMENSIONS; i++) {
 		diff = ndnodep->coords[i] - dnodep->coords[i];
@@ -357,7 +361,7 @@ _allocate_lookup_table(Topology_t *topop, DorTopology_t *dorTop)
 
 	memset(lookup_table,0,lookup_table_length);
 	for_all_switch_nodes(topop, tnodep) {
-		DorNode_t *dnp = (DorNode_t*)(tnodep->routingData);
+		DorBiuNode_t *dnp = (DorBiuNode_t*)(tnodep->routingData);
 
 		_set_lookup_entry(dnp->coords, tnodep);
 	}
@@ -402,7 +406,7 @@ _missing_switch_check(Topology_t *topop) {
 //
 
 static Status_t
-_create_dimension(DorDiscoveryState_t *state, uint8_t p, uint8_t q, DorDimension_t **outDim)
+_create_dimension(DorBiuDiscoveryState_t *state, uint8_t p, uint8_t q, DorDimension_t **outDim)
 {
 	Status_t status;
 	DorDimension_t *dim;
@@ -469,7 +473,7 @@ _create_dimension(DorDiscoveryState_t *state, uint8_t p, uint8_t q, DorDimension
 }
 
 static Status_t
-_extend_dimension(DorDiscoveryState_t *state, uint8_t p, uint8_t q,
+_extend_dimension(DorBiuDiscoveryState_t *state, uint8_t p, uint8_t q,
 	uint8_t dimension, int8_t direction, DorDimension_t **outDim)
 {
 	Status_t status;
@@ -507,14 +511,14 @@ _extend_dimension(DorDiscoveryState_t *state, uint8_t p, uint8_t q,
 }
 
 static DimLookupRval_t
-_lookup_dimension(DorDiscoveryState_t *state, uint8_t p, uint8_t q, DorDimension_t **outDim)
+_lookup_dimension(DorBiuDiscoveryState_t *state, uint8_t p, uint8_t q, DorDimension_t **outDim)
 {
 	if (state->dimensionMap[p] == NULL)
 		return DIM_LOOKUP_RVAL_NOTFOUND;
 
 	if (state->dimensionMap[p]->ingressPort != q)
 		return DIM_LOOKUP_RVAL_INVALID;
-
+	
 	*outDim = state->dimensionMap[p];
 	return DIM_LOOKUP_RVAL_FOUND;
 }
@@ -522,7 +526,7 @@ _lookup_dimension(DorDiscoveryState_t *state, uint8_t p, uint8_t q, DorDimension
 // Returns 0 if we've maxed on the number of toroidal dimensions
 // available.  1 if we successfully marked it.
 static int
-_mark_toroidal_dimension(DorDiscoveryState_t *state, Topology_t *topop, uint8_t dimension)
+_mark_toroidal_dimension(DorBiuDiscoveryState_t *state, Topology_t *topop, uint8_t dimension)
 {
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
 
@@ -541,7 +545,7 @@ _mark_toroidal_dimension(DorDiscoveryState_t *state, Topology_t *topop, uint8_t 
 /* This function assumes that ports p1 and p2 are part of the configured dimension config_dim.
  * It also assumes that the dimension has been created.
  */
-static int _get_dimension_and_direction(DorDiscoveryState_t *state, int config_dim, int p1, int p2, uint8_t * dimension, int8_t *direction)
+static int _get_dimension_and_direction(DorBiuDiscoveryState_t *state, int config_dim, int p1, int p2, uint8_t * dimension, int8_t *direction)
 {
 	int i, idx = 0;
 	DorDimension_t *dim = NULL;
@@ -646,7 +650,7 @@ get_configured_port_pos_in_dim(int d, int p)
 }
 
 static Status_t
-_propagate_coord_through_port(DorDiscoveryState_t *state,
+_propagate_coord_through_port(DorBiuDiscoveryState_t *state,
 	Topology_t *topop, Node_t *nodep, Port_t *portp)
 {
 	Status_t status;
@@ -661,6 +665,11 @@ _propagate_coord_through_port(DorDiscoveryState_t *state,
 	neighborNodep = sm_find_node(topop, portp->nodeno);
 	if (neighborNodep == NULL) {
 		IB_LOG_ERROR0("Failed to find neighbor node");
+//-----------------------zp start----------------------//
+		if(portp->index==state->portbiu){
+			return VSTATUS_OK;
+		}
+//-----------------------zp stop------------------------//
 		return VSTATUS_BAD;
 	}
 
@@ -679,7 +688,14 @@ _propagate_coord_through_port(DorDiscoveryState_t *state,
 				state->scsAvailable, dorTop->minReqScs);
 		return VSTATUS_BAD;
 	}
-
+//-----------------------------zp start-------------------------//
+	if(portp->index==state->portbiu&&portp->portno==state->portbiu){
+		((DorBiuNode_t *)nodep->routingData)->brother=neighborNodep;
+		((DorBiuNode_t *)neighborNodep->routingData)->brother=nodep;
+		IB_LOG_WARN_FMT(__func__,"find a brother-- %d:%d",nodep->index,neighborNodep->index);
+		return VSTATUS_OK;
+	}
+//-----------------------------zp stop--------------------------//
 	// determine the dimension of this link
 	rval = _lookup_dimension(state, portp->index, portp->portno, &dim);
 	switch (rval) {
@@ -786,17 +802,17 @@ _propagate_coord_through_port(DorDiscoveryState_t *state,
 	}
 
 	// init node if this is the first time we've seen it
-	DorNode_t *neighborDorNode = NULL;
-	DorNode_t *dorNode = (DorNode_t*)nodep->routingData;
+	DorBiuNode_t *neighborDorNode = NULL;
+	DorBiuNode_t *dorNode = (DorBiuNode_t*)nodep->routingData;
 	if (neighborNodep->routingData == NULL) {
-		status = vs_pool_alloc(&sm_pool, sizeof(DorNode_t), &neighborNodep->routingData);
+		status = vs_pool_alloc(&sm_pool, sizeof(DorBiuNode_t), &neighborNodep->routingData);
 		if (status != VSTATUS_OK) {
 			IB_LOG_ERRORRC("Failed to allocate storage for DOR node structure; rc:", status);
 			neighborNodep->routingData = NULL;
 			return status;
 		}
-		neighborDorNode = (DorNode_t*)neighborNodep->routingData;
-		memset(neighborNodep->routingData, 0, sizeof(DorNode_t));
+		neighborDorNode = (DorBiuNode_t*)neighborNodep->routingData;
+		memset(neighborNodep->routingData, 0, sizeof(DorBiuNode_t));
 		neighborDorNode->node = neighborNodep;
 
 		// copy over existing coordinates
@@ -841,7 +857,7 @@ _propagate_coord_through_port(DorDiscoveryState_t *state,
 
 	} else {
 		// the neighbor has an existing coordinate, check for a wrap-around edge
-		neighborDorNode = (DorNode_t*)neighborNodep->routingData;
+		neighborDorNode = (DorBiuNode_t*)neighborNodep->routingData;
 		if (dim->hyperlink) {
 			if (is_configured_toroidal(portp->index, portp->portno)) {
 				IB_LOG_WARN_FMT(__func__, "Hyperlink configured as toroidal between "
@@ -927,7 +943,26 @@ _propagate_coord_through_port(DorDiscoveryState_t *state,
 			}
 		}
 	}
-
+//-------------------------------------zp start--------------------------//
+	int i=0;
+	int offset=0;
+	char string[BORBIU_COORDINATE_STRING_LEN]={0};
+	{
+		offset=sprintf(string,"(");
+		offset+=sprintf(string+offset,"%d:",SM_DOR_MAX_DIMENSIONS);
+		for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
+			offset+=sprintf(string+offset,"%d",neighborDorNode->coords[i]);
+			if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+				IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+				break;
+			}
+			if( i == (SM_DOR_MAX_DIMENSIONS-1) )continue;
+			offset+=sprintf(string+offset,",");
+		}
+		sprintf(string+offset,")");
+		IB_LOG_WARN_FMT(__func__,"zp log : node->index--%d  %s ",neighborNodep->index ,string);
+	}
+//-------------------------------------zp stop---------------------------//	
 	// update neighbor pointers for every link we find
 	if (dim->hyperlink) {
 		_find_dimension_difference(nodep, neighborNodep, &dimension, &direction);
@@ -957,13 +992,15 @@ static int
 _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection dir) {
 
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
-	DorNode_t *srcDnp = (DorNode_t*)src->routingData;
-	DorNode_t *dstDnp = (DorNode_t*)dst->routingData;
+	DorBiuNode_t *srcDnp = (DorBiuNode_t*)src->routingData;
+	DorBiuNode_t *dstDnp = (DorBiuNode_t*)dst->routingData;
 	int i, si = -1, di = -1;
 	int	goRight = 0;
 	int goLeft = 0;
 	int ij = DorBitMapsIndex(src->swIdx, dst->swIdx);
-
+	//----------------------zp start----------------------//
+ 	int step=0;
+	//----------------------zp stop-----------------------// 
 	if (smDorRouting.debug && sm_config.sm_debug_routing)
 		IB_LOG_INFINI_INFO_FMT(__func__, "Entry [%s] to [%s] dir %s",
 		   	sm_nodeDescString(src), sm_nodeDescString(dst), dir == DorAny ? "Any" : (dir == DorRight ? "Right" : "Left"));
@@ -972,14 +1009,32 @@ _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection di
 		// reached destination
 		return 1;
 	}
+	//------------------zp start-------------------//
 
-	if (ijTest(dorTop->dorLeft, ij) || ijTest(dorTop->dorRight, ij)) {
+	if (ijBiuTest(dorTop->dorLeft, ij) || ijBiuTest(dorTop->dorRight, ij)) {
 		// been here before
-		return 1;
+//		return 1;
+		if(ijBiuTest(dorTop->dorLeft, ij)&&ijBiuTest(dorTop->dorRight, ij)){
+			if(ijBiuGet(dorTop->dorLeft, ij)<ijBiuGet(dorTop->dorRight, ij)){
+				IB_LOG_WARN_FMT(__func__,"zp log : been here before %d ",ijBiuGet(dorTop->dorLeft, ij)+1);
+				return ijBiuGet(dorTop->dorLeft, ij)+1;
+			}else{
+				IB_LOG_WARN_FMT(__func__,"zp log : been here before %d ",ijBiuGet(dorTop->dorRight, ij)+1);
+				return ijBiuGet(dorTop->dorRight, ij)+1;	
+			}
+		}else if(ijBiuTest(dorTop->dorLeft, ij)){
+			IB_LOG_WARN_FMT(__func__,"zp log : been here before %d ",ijBiuGet(dorTop->dorLeft, ij)+1);
+			return ijBiuGet(dorTop->dorLeft, ij)+1;
+		}else if(ijBiuTest(dorTop->dorRight, ij)){
+			IB_LOG_WARN_FMT(__func__,"zp log : been here before %d ",ijBiuGet(dorTop->dorRight, ij)+1);
+			return ijBiuGet(dorTop->dorRight, ij)+1;
+		}
 	}
+	//----------------zp stop ---------------------//
 
-	if (ijTest(dorTop->dorBroken, ij)) {
+	if (ijBiuTest(dorTop->dorBroken, ij)) {
 		// been here before
+		IB_LOG_WARN_FMT(__func__,"zp log : not realizable because dorBroken!");
 		return 0;
 	}
 
@@ -1024,16 +1079,56 @@ _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection di
 
 		if (goRight) {
 			// continue right until we reach next dimension, then use any dir
-			if (srcDnp->right[i] &&
-				(srcDnp->right[i] == dstDnp ||
-				 _is_path_realizable(topop, srcDnp->right[i]->node, dst, srcDnp->right[i]->coords[i] == di ? DorAny : DorRight))) {
 
-				ijSet(dorTop->dorRight, ij);
+			//-----------------------zp start-------------------//
+			step=_is_path_realizable(topop, srcDnp->right[i]->node, dst, srcDnp->right[i]->coords[i] == di ? DorAny : DorRight);
+			if (srcDnp->right[i] &&
+				(srcDnp->right[i] == dstDnp ||step!=0)) {
+				
+				int i=0;
+				int offset=0;
+				char string[BORBIU_COORDINATE_STRING_LEN]="";
+				{
+					offset+=sprintf(string+offset,"src:(");
+					for(i=0;i<dorTop->numDimensions;i++){
+						offset+=sprintf(string+offset,"%d",srcDnp->coords[i]);
+						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+							break;
+						}
+						if( i == (dorTop->numDimensions-1) )continue;
+						offset+=sprintf(string+offset,",");
+					}
+					offset+=sprintf(string+offset,")");
+				}
+
+				{
+					offset+=sprintf(string+offset," , dest:(");
+					for(i=0;i<dorTop->numDimensions;i++){
+						offset+=sprintf(string+offset,"%d",dstDnp->coords[i]);
+						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+							break;
+						}
+						if( i == (dorTop->numDimensions-1) )continue;
+						offset+=sprintf(string+offset,",");
+					}
+					offset+=sprintf(string+offset,")");
+				}
+			
+//				ijSet(dorTop->dorRight, ij);
+//-----------------------------zp start--------------------------------//
+				ijBiuSet(dorTop->dorRight, ij,step);
+//-----------------------------zp stop---------------------------------//
+				IB_LOG_WARN_FMT(__func__,"zp log : %s--%d,%d",string,step,ijBiuGet(dorTop->dorRight, ij));
 
 			} else if (dir == DorAny && !goLeft && srcDnp->left[i]) {
 				// try a longer path
-				if (_is_path_realizable(topop, srcDnp->left[i]->node, dst, DorLeft)) {
-					ijSet(dorTop->dorLeft, ij);
+				step=_is_path_realizable(topop, srcDnp->left[i]->node, dst, DorLeft);
+//				if (_is_path_realizable(topop, srcDnp->left[i]->node, dst, DorLeft)) {
+				if(step!=0){
+//					ijSet(dorTop->dorLeft, ij);
+					ijBiuSet(dorTop->dorLeft, ij,step);
 				}
 				break;
 			}
@@ -1041,35 +1136,92 @@ _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection di
 
 		if (goLeft) {
 			// continue left until we reach next dimension, then use any dir
+			step=_is_path_realizable(topop, srcDnp->left[i]->node, dst, srcDnp->left[i]->coords[i] == di ? DorAny : DorLeft);
 			if (srcDnp->left[i] &&
-				(srcDnp->left[i] == dstDnp ||
-				 _is_path_realizable(topop, srcDnp->left[i]->node, dst, srcDnp->left[i]->coords[i] == di ? DorAny : DorLeft))) {
-				ijSet(dorTop->dorLeft, ij);
+				(srcDnp->left[i] == dstDnp ||step!=0)) {
+
+
+				int i=0;
+				int offset=0;
+				char string[BORBIU_COORDINATE_STRING_LEN]="";
+				{
+					offset+=sprintf(string+offset,"src:(");
+					for(i=0;i<dorTop->numDimensions;i++){
+						offset+=sprintf(string+offset,"%d",srcDnp->coords[i]);
+						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+							break;
+						}
+						if( i == (dorTop->numDimensions-1) )continue;
+						offset+=sprintf(string+offset,",");
+					}
+					offset+=sprintf(string+offset,")");
+				}
+
+				{
+					offset+=sprintf(string+offset," , dest:(");
+					for(i=0;i<dorTop->numDimensions;i++){
+						offset+=sprintf(string+offset,"%d",dstDnp->coords[i]);
+						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+							break;
+						}
+						if( i == (dorTop->numDimensions-1) )continue;
+						offset+=sprintf(string+offset,",");
+					}
+					offset+=sprintf(string+offset,")");
+				}
+
+					
+//				ijSet(dorTop->dorLeft, ij);
+//-----------------------------zp start--------------------------------//
+				ijBiuSet(dorTop->dorLeft, ij,step);
+//-----------------------------zp stop---------------------------------//
+				IB_LOG_WARN_FMT(__func__,"zp log : %s--%d,%d",string,step,ijBiuGet(dorTop->dorLeft, ij));
 
 			} else if (dir == DorAny && !goRight && srcDnp->right[i]) {
 				// try a longer path
-				if (_is_path_realizable(topop, srcDnp->right[i]->node, dst, DorRight)) {
-					ijSet(dorTop->dorRight, ij);
+				step=_is_path_realizable(topop, srcDnp->right[i]->node, dst, DorRight);
+				if (step!=0) {
+//					ijSet(dorTop->dorRight, ij);
+					ijBiuSet(dorTop->dorRight, ij,step);
+
 				}
 			}
 		}
 		break;
 	}
+	//-----------------------zp stop--------------------//
 
-	if (ijTest(dorTop->dorLeft, ij) || ijTest(dorTop->dorRight, ij)) {
+	if (ijBiuTest(dorTop->dorLeft, ij) || ijBiuTest(dorTop->dorRight, ij)) {
 		if (smDorRouting.debug && sm_config.sm_debug_routing)
 			IB_LOG_INFINI_INFO_FMT(__func__,
 				"Path from %d [%s] to %d [%s] routes left %d right %d",
 				src->swIdx, sm_nodeDescString(src), dst->swIdx, sm_nodeDescString(dst),
-				ijTest(dorTop->dorLeft, ij), ijTest(dorTop->dorRight, ij));
+				ijBiuTest(dorTop->dorLeft, ij), ijBiuTest(dorTop->dorRight, ij));
+//			IB_LOG_INFINI_INFO_FMT(__func__,
+//				"Path from %d [%s] to %d [%s] routes left %d right %d",
+//				src->swIdx, sm_nodeDescString(src), dst->swIdx, sm_nodeDescString(dst),
+//				ijTest(dorTop->dorLeft, ij), ijTest(dorTop->dorRight, ij));
 
-		return 1;
 
+//---------------------------zp start------------------//
+//		return 1;
+
+		return step+1;
+//---------------------------zp stop-------------------//
 	} else {
-		ijSet(dorTop->dorBroken, ij);
+//		ijSet(dorTop->dorBroken, ij);
+		ijBiuSet(dorTop->dorBroken, ij,1);
 	}
-
+	IB_LOG_WARN_FMT(__func__,"zp log : not realizable because ijBiuTest!");
 	return 0;
+//---------------------------zp start------------------//
+//	ijTest();
+//	ijSet();
+//	ijClear();
+//---------------------------zp stop-------------------//
+
 }
 
 static int _compare_lids_routed(const void * arg1, const void * arg2);
@@ -1108,7 +1260,7 @@ _get_alternate_path_port_group(Topology_t *topop, Node_t *src, Node_t *dst, uint
 		if (topop->cost[Index(i, k)] + topop->cost[Index(k, j)] == best_cost) {
 			// Only use broken path if only path
 			if (next_nodep != dst) {
-				if (((DorNode_t*)next_nodep->routingData)->multipleBrokenDims) {
+				if (((DorBiuNode_t*)next_nodep->routingData)->multipleBrokenDims) {
 					if (!brokenPath && end_port > 0) continue;
 					brokenPath = 1;
 				} else if (brokenPath) {
@@ -1154,8 +1306,9 @@ _calc_dor_closure(Topology_t *topop)
 	size_t s;
 	Node_t *ni, *nj;
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
-
-	s = (sizeof(uint32_t) * topop->max_sws * topop->max_sws / 32) + 1;
+//---------------------------------zp start----------------------------------//
+//	s = (sizeof(uint32_t) * topop->max_sws * topop->max_sws / 32) + 1;
+	s=	(sizeof(uint32_t) * topop->max_sws * topop->max_sws ) + 1;
 	dorTop->dorClosureSize = s;
 
 	status = vs_pool_alloc(&sm_pool, s, (void *)&dorTop->dorLeft);
@@ -1163,26 +1316,42 @@ _calc_dor_closure(Topology_t *topop)
 		IB_LOG_ERRORRC("Failed to allocate memory for DOR closure array; rc:", status);
 		return status;
 	}
-	memset((void *)dorTop->dorLeft, 0, s);
+//	memset((void *)dorTop->dorLeft, 0, s);
+	memset((void *)dorTop->dorLeft,DEFAULT_IJ_BITMAP, s);
 
 	status = vs_pool_alloc(&sm_pool, s, (void *)&dorTop->dorRight);
 	if (status != VSTATUS_OK) {
 		IB_LOG_ERRORRC("Failed to allocate memory for DOR closure array; rc:", status);
 		return status;
 	}
-	memset((void *)dorTop->dorRight, 0, s);
+//	memset((void *)dorTop->dorRight, 0, s);
+	memset((void *)dorTop->dorRight, DEFAULT_IJ_BITMAP, s);
 
 	status = vs_pool_alloc(&sm_pool, s, (void *)&dorTop->dorBroken);
 	if (status != VSTATUS_OK) {
 		IB_LOG_ERRORRC("Failed to allocate memory for DOR closure array; rc:", status);
 		return status;
 	}
-	memset((void *)dorTop->dorBroken, 0, s);
+//	memset((void *)dorTop->dorBroken, 0, s);
+	memset((void *)dorTop->dorBroken, DEFAULT_IJ_BITMAP, s);
 
+//------------------------zp stop-------------------------//
 	// Find paths which are valid - DOR closure exists
 	for_all_switch_nodes(topop, ni) {
+	
 		for_all_switch_nodes(topop, nj) {
-			if (ni == nj || _is_path_realizable(topop, ni, nj, DorAny)) continue;
+//------------------------zp start-------------------//
+//			if (ni == nj || _is_path_realizable(topop, ni, nj, DorAny)) continue;
+			if (ni->swIdx== nj->swIdx){
+				continue;
+			}else{ 
+				IB_LOG_WARN_FMT(__func__,"zp log : calculate step start! %d--%d",ni->swIdx,nj->swIdx);
+				if (_is_path_realizable(topop, ni, nj, DorAny)){
+					IB_LOG_WARN_FMT(__func__,"zp log : calculate step stop!");
+					continue;
+				}
+			}
+//------------------------zp stop--------------------//
 			if (smDorRouting.debug)
 				IB_LOG_WARN_FMT(__func__,
 						"Path from %d [%s] to %d [%s] is NOT realizable",
@@ -1234,11 +1403,11 @@ isDatelineSwitch(Topology_t *topop, Node_t *switchp, uint8_t dimension)
 	if (!((DorTopology_t*)(topop->routingModule->data))->datelineSwitch) {
 		// if no datelineSwitch found, use coord (0,0,0...)
 		return (((DorTopology_t *)topop->routingModule->data)->toroidal[dimension] &&
-				((DorNode_t*)switchp->routingData)->coords[dimension] == 0);
+				((DorBiuNode_t*)switchp->routingData)->coords[dimension] == 0);
 	}
 
 	return (((DorTopology_t *)topop->routingModule->data)->toroidal[dimension] &&
-			((DorNode_t*)switchp->routingData)->coords[dimension] ==
+			((DorBiuNode_t*)switchp->routingData)->coords[dimension] ==
 			((DorTopology_t*)(topop->routingModule->data))->datelineSwitch->coords[dimension]);
 }
 
@@ -1638,8 +1807,8 @@ _compare_lids_routed(const void * arg1, const void * arg2)
 
 static inline int routingDimension(Topology_t *topop, const struct _Node *switchp, const struct _Node *toSwitchp) {
 
-	DorNode_t *srcDnp = (DorNode_t*)switchp->routingData;
-	DorNode_t *dstDnp = (DorNode_t*)toSwitchp->routingData;
+	DorBiuNode_t *srcDnp = (DorBiuNode_t*)switchp->routingData;
+	DorBiuNode_t *dstDnp = (DorBiuNode_t*)toSwitchp->routingData;
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
 	int i, si, di;
 
@@ -1829,7 +1998,7 @@ static int
 _get_dor_port_group(Topology_t *topop, Node_t *switchp, Node_t* toSwitchp, uint8_t *portnos)
 {
 	int				i, ij, count=0;
-	DorNode_t		*srcDnp = (DorNode_t*)switchp->routingData;
+	DorBiuNode_t		*srcDnp = (DorBiuNode_t*)switchp->routingData;
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
 	int				routingDim = routingDimension(topop, switchp, toSwitchp);
 	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
@@ -1841,11 +2010,11 @@ _get_dor_port_group(Topology_t *topop, Node_t *switchp, Node_t* toSwitchp, uint8
 		return 0;
 	}
 
-	if (ijTest(dorTop->dorLeft, ij)) {
+	if (ijBiuTest(dorTop->dorLeft, ij)) {
 		_add_ports(switchp, srcDnp->left[routingDim]->node, ordered_ports, &count);
 	}
 
-	if (ijTest(dorTop->dorRight, ij)) {
+	if (ijBiuTest(dorTop->dorRight, ij)) {
 		_add_ports(switchp, srcDnp->right[routingDim]->node, ordered_ports, &count);
 	}
 
@@ -1864,7 +2033,7 @@ _get_port_group(Topology_t *topop, Node_t *switchp, Node_t *toSwitchp, uint8_t *
 	int				count=0;
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
 
-	if (dorClosure(dorTop, switchp->swIdx, toSwitchp->swIdx)) {
+	if (dorBiuClosure(dorTop, switchp->swIdx, toSwitchp->swIdx)) {
 		count = _get_dor_port_group(topop, switchp, toSwitchp, portnos);
 	} else {
 		count = _get_alternate_path_port_group(topop, switchp, toSwitchp, portnos);
@@ -2040,7 +2209,7 @@ static Status_t
 _pre_process_discovery(Topology_t *topop, void **outContext)
 {
 	Status_t status;
-	DorDiscoveryState_t *state;
+	DorBiuDiscoveryState_t *state;
 	DorTopology_t	*dorTop;
 	int i;
 
@@ -2052,7 +2221,7 @@ _pre_process_discovery(Topology_t *topop, void **outContext)
 	dorTop = (DorTopology_t*)topop->routingModule->data;
 	memset(dorTop, 0, sizeof(DorTopology_t));
 
-	status = vs_pool_alloc(&sm_pool, sizeof(DorDiscoveryState_t),
+	status = vs_pool_alloc(&sm_pool, sizeof(DorBiuDiscoveryState_t),
 		(void *)&state);
 	if (status != VSTATUS_OK) {
 		IB_LOG_ERRORRC("Failed to allocate up/down state; rc:", status);
@@ -2063,6 +2232,10 @@ _pre_process_discovery(Topology_t *topop, void **outContext)
 	// @TODO: Adjust to STL Max once new VL ranges have been defined
 	// default VLs available to max
 	state->scsAvailable = STL_MAX_SCS;
+//-----------------zp start--------------------//
+	state->portbiu=smDorRouting.dimensionbiu.port;
+	IB_LOG_WARN_FMT(__func__,"zp log : state->portbiu---%d",state->portbiu);
+//-----------------zp stop---------------------//
 
 	*outContext = (void *)state;
 
@@ -2229,6 +2402,15 @@ _discover_node(Topology_t *topop, Node_t *nodep, void *context)
 		}
 
 		if (neighborType == NI_TYPE_SWITCH) {
+//---------------------zp start---------------------//
+			IB_LOG_WARN_FMT(__func__,"zp log : node--%d port--%d",nodep->index,p->index);
+			DorBiuDiscoveryState_t* state=(DorBiuDiscoveryState_t*)context;
+			if((p->index==state->portbiu)&&(neighbor_portp->index==state->portbiu)){
+				IB_LOG_WARN_FMT(__func__,"zp log : run continue, node--%d port--%d",nodep->index,p->index);
+				continue;
+			}
+//---------------------zp stop----------------------//
+
 			dim = get_configured_dimension(p->index, neighbor_portno);
 			if (dim < 0 || dim >= MAX_DOR_DIMENSIONS) {
 				invalid = 1;
@@ -2422,23 +2604,23 @@ _discover_node_port(Topology_t *topop, Node_t *nodep, Port_t *portp, void *conte
 	if (nodep->routingData == NULL) {
 		// should only apply to the first node, since propagation will
 		// take care of the rest
-		status = vs_pool_alloc(&sm_pool, sizeof(DorNode_t), &nodep->routingData);
+		status = vs_pool_alloc(&sm_pool, sizeof(DorBiuNode_t), &nodep->routingData);
 		if (status != VSTATUS_OK) {
 			IB_LOG_ERRORRC("_discover_node: Failed to allocate storage for DOR node structure; rc:", status);
 			return status;
 		}
-		memset(nodep->routingData, 0, sizeof(DorNode_t));
-		((DorNode_t*)nodep->routingData)->node = nodep;
+		memset(nodep->routingData, 0, sizeof(DorBiuNode_t));
+		((DorBiuNode_t*)nodep->routingData)->node = nodep;
 	}
 
-	return _propagate_coord_through_port((DorDiscoveryState_t *)context, topop, nodep, portp);
+	return _propagate_coord_through_port((DorBiuDiscoveryState_t *)context, topop, nodep, portp);
 }
 
 static Status_t
 _post_process_discovery(Topology_t *topop, Status_t discoveryStatus, void *context)
 {
 	int i, j, idx, general_warning = 0, specific_warning = 0;
-	DorDiscoveryState_t *state = (DorDiscoveryState_t *)context;
+	DorBiuDiscoveryState_t *state = (DorBiuDiscoveryState_t *)context;
 	DorTopology_t	*dorTop = (DorTopology_t *)topop->routingModule->data;
 	Status_t status = VSTATUS_OK;
 	Node_t *switchp;
@@ -2451,12 +2633,12 @@ _post_process_discovery(Topology_t *topop, Status_t discoveryStatus, void *conte
 			IB_LOG_ERROR0("error in getting datelineSwitchGUIDLock");
 		} else if (topop->switch_head) {
 			sm_datelineSwitchGUID = topop->switch_head->nodeInfo.NodeGUID;
-			dorTop->datelineSwitch = (DorNode_t*)(topop->switch_head->routingData);
+			dorTop->datelineSwitch = (DorBiuNode_t*)(topop->switch_head->routingData);
 		}
 		vs_unlock(&sm_datelineSwitchGUIDLock);
 		(void)sm_dbsync_syncDatelineSwitchGUID(DBSYNC_TYPE_FULL);
 	} else {
-		dorTop->datelineSwitch = (DorNode_t*)(switchp->routingData);
+		dorTop->datelineSwitch = (DorBiuNode_t*)(switchp->routingData);
 	}
 
 	/* Even in the case where discovery did not go well, display warnings which might be useful
@@ -2645,8 +2827,8 @@ static Status_t _process_swIdx_change(Topology_t * topop, int old_idx, int new_i
 		if (i == new_idx) {
 			oldij = oldji = DorBitMapsIndex(old_idx, old_idx);
 		}
-
-		if (dorTop->dorLeft != NULL) {
+//-------------------------------zp start----------------------------------//
+		/*if (dorTop->dorLeft != NULL) {
 			if (ijTest(dorTop->dorLeft, oldij)) {
 				ijSet(dorTop->dorLeft, ij);
 				//reset old index value to 0 as it is no longer valid
@@ -2698,7 +2880,61 @@ static Status_t _process_swIdx_change(Topology_t * topop, int old_idx, int new_i
 			} else {
 				ijClear(dorTop->dorBroken, ji);
 			}
+		}*/
+		if (dorTop->dorLeft != NULL) {
+			if (ijBiuTest(dorTop->dorLeft, oldij)) {
+				ijBiuSet(dorTop->dorLeft, ij,ijBiuGet(dorTop->dorLeft,oldij));
+				//reset old index value to 0 as it is no longer valid
+				ijBiuClear(dorTop->dorLeft, oldij);
+			} else {
+				ijBiuClear(dorTop->dorLeft, ij);
+			}
+
+			if (ijBiuTest(dorTop->dorLeft, oldji)) {
+				ijBiuSet(dorTop->dorLeft, ji,ijBiuGet(dorTop->dorLeft, oldji));
+				//reset old index value to 0;
+				ijBiuClear(dorTop->dorLeft, oldji);
+			} else {
+				ijBiuClear(dorTop->dorLeft, ji);
+			}
 		}
+
+		if (dorTop->dorRight != NULL) {
+			if (ijBiuTest(dorTop->dorRight, oldij)) {
+				ijBiuSet(dorTop->dorRight, ij,ijBiuGet(dorTop->dorRight, oldij));
+				//reset old index value to 0 as it is no longer valid
+				ijBiuClear(dorTop->dorRight, oldij);
+			} else {
+				ijBiuClear(dorTop->dorRight, ij);
+			}
+
+			if (ijBiuTest(dorTop->dorRight, oldji)) {
+				ijBiuSet(dorTop->dorRight, ji,ijBiuGet(dorTop->dorRight, oldji));
+				//reset old index value to 0
+				ijBiuClear(dorTop->dorRight, oldji);
+			} else {
+				ijBiuClear(dorTop->dorRight, ji);
+			}
+		}
+
+		if (dorTop->dorBroken != NULL) {
+			if (ijBiuTest(dorTop->dorBroken, oldij)) {
+				ijBiuSet(dorTop->dorBroken, ij,ijBiuGet(dorTop->dorBroken, oldij));
+				//reset old index value to 0 as it is no longer valid
+				ijBiuClear(dorTop->dorBroken, oldij);
+			} else {
+				ijBiuClear(dorTop->dorBroken, ij);
+			}
+
+			if (ijBiuTest(dorTop->dorBroken, oldji)) {
+				ijBiuSet(dorTop->dorBroken, ji,ijBiuGet(dorTop->dorBroken, oldji));
+				//reset old index value to 0
+				ijBiuClear(dorTop->dorBroken, oldji);
+			} else {
+				ijBiuClear(dorTop->dorBroken, ji);
+			}
+		}
+//--------------------------zp stop---------------------------//
 	}
 
 	return VSTATUS_OK;
@@ -2725,8 +2961,8 @@ extern McSpanningTree_t **uniqueSpanningTrees;
 // isLeft		- true if dneighborp is on the left of dnodep in dimension dim.
 //
 static int
-_add_neighbor_to_tree(McSpanningTree_t *dorTree, DorNode_t *dnodep,
-	DorNode_t *dneighborp, unsigned dim, unsigned isLeft)
+_add_neighbor_to_tree(McSpanningTree_t *dorTree, DorBiuNode_t *dnodep,
+	DorBiuNode_t *dneighborp, unsigned dim, unsigned isLeft)
 {
 	Node_t *nodep = dnodep->node;
 	Node_t *nnodep = dneighborp->node;
@@ -2809,7 +3045,7 @@ _dump_spanning_tree(McSpanningTree_t *dorTree)
 	char buffer2[32];
 	unsigned i;
 	Node_t *nodep, *pnodep;
-	DorNode_t *dnp, *dpnp;
+	DorBiuNode_t *dnp, *dpnp;
 
 	for (i = 0; i < dorTree->num_nodes; i++) {
 		McNode_t * mcnodep = &(dorTree->nodes[i]);
@@ -2824,7 +3060,7 @@ _dump_spanning_tree(McSpanningTree_t *dorTree)
 		nodep = sm_find_node(sm_topop, mcnodep->index);
 
 		if (nodep) {
-			dnp = (DorNode_t*)(nodep->routingData);
+			dnp = (DorBiuNode_t*)(nodep->routingData);
 			if (!dnp) {
 				IB_LOG_ERROR_FMT(__func__, "Invalid DOR routing data for %s",
 					sm_nodeDescString(nodep));
@@ -2835,7 +3071,7 @@ _dump_spanning_tree(McSpanningTree_t *dorTree)
 			if (mcparentp) {
 				pnodep = sm_find_node(sm_topop, mcparentp->index);
 				if (pnodep) {
-					dpnp = (DorNode_t*)(pnodep->routingData);
+					dpnp = (DorBiuNode_t*)(pnodep->routingData);
 					_coord_to_string(sm_topop, dpnp->coords, buffer2);
 				} else {
 					snprintf(buffer2,sizeof(buffer2),"<INVALID>");
@@ -2860,7 +3096,7 @@ _dump_spanning_tree(McSpanningTree_t *dorTree)
 // Some common tests to validate that the neighbor node should be added to
 // the spanning tree.
 static int
-_validate_neighbor(DorNode_t *dneighborp)
+_validate_neighbor(DorBiuNode_t *dneighborp)
 {
 	if (dneighborp == NULL) {
 		// No neighbor but not at the edge. There's only one explanation.
@@ -2890,13 +3126,13 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 	Node_t *nodep = NULL;
 	Node_t *left_edgep = NULL;
 	Node_t *right_edgep = NULL;
-	DorNode_t *dnodep, *dneighborp;
+	DorBiuNode_t *dnodep, *dneighborp;
 
 	DEBUG_ASSERT(rootp);
 
 	// Move left along the current row.
 	nodep = rootp;
-	dnodep = (DorNode_t*)(nodep->routingData);
+	dnodep = (DorBiuNode_t*)(nodep->routingData);
 
 	do {
 		dneighborp = dnodep->left[dim];
@@ -2917,7 +3153,7 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 		}
 
 		nodep = dneighborp->node;
-		dnodep = (DorNode_t*)(nodep->routingData);
+		dnodep = (DorBiuNode_t*)(nodep->routingData);
 
 		if ((dim+1) < dorTop->numDimensions) {
 			_build_spanning_tree_branch(dorTop, dorTree, nodep, dim+1);
@@ -2927,7 +3163,7 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 
 	// Now go right.
 	nodep = rootp;
-	dnodep = (DorNode_t*)(nodep->routingData);
+	dnodep = (DorBiuNode_t*)(nodep->routingData);
 
 	do {
 		dneighborp = dnodep->right[dim];
@@ -2954,7 +3190,7 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 		}
 
 		nodep = dneighborp->node;
-		dnodep = (DorNode_t*)(nodep->routingData);
+		dnodep = (DorBiuNode_t*)(nodep->routingData);
 
 		if ((dim+1) < dorTop->numDimensions) {
 			_build_spanning_tree_branch(dorTop, dorTree, nodep, dim+1);
@@ -2970,7 +3206,7 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 		// the unconnected switches.
 
 		nodep = right_edgep;
-		dnodep = (DorNode_t*)(nodep->routingData);
+		dnodep = (DorBiuNode_t*)(nodep->routingData);
 		do {
 			dneighborp = dnodep->right[dim];
 
@@ -2984,7 +3220,7 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 			}
 
 			nodep = dneighborp->node;
-			dnodep = (DorNode_t*)(nodep->routingData);
+			dnodep = (DorBiuNode_t*)(nodep->routingData);
 			if ((dim+1) < dorTop->numDimensions) {
 				_build_spanning_tree_branch(dorTop, dorTree, nodep, dim+1);
 			}
@@ -2997,7 +3233,7 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 		// the unconnected switches.
 
 		nodep = left_edgep;
-		dnodep = (DorNode_t*)(nodep->routingData);
+		dnodep = (DorBiuNode_t*)(nodep->routingData);
 		do {
 			dneighborp = dnodep->left[dim];
 
@@ -3011,7 +3247,7 @@ _build_spanning_tree_branch(DorTopology_t *dorTop, McSpanningTree_t *dorTree,
 			}
 
 			nodep = dneighborp->node;
-			dnodep = (DorNode_t*)(nodep->routingData);
+			dnodep = (DorBiuNode_t*)(nodep->routingData);
 			if ((dim+1) < dorTop->numDimensions) {
 				_build_spanning_tree_branch(dorTop, dorTree, nodep, dim+1);
 			}
@@ -3051,7 +3287,7 @@ _build_spanning_trees(void)
 	DorTopology_t *dorTop = (DorTopology_t *)sm_topop->routingModule->data;
 	Node_t *rootp = NULL;
 	Node_t *nodep = NULL;
-	DorNode_t *dnodep = NULL;
+	DorBiuNode_t *dnodep = NULL;
 	McSpanningTree_t *dorTree = NULL;
 
 	const int mtu = sm_newTopology.maxMcastMtu;
@@ -3103,7 +3339,7 @@ _build_spanning_trees(void)
 		// Map the mcast tree to all the switches in the fabric according to
 		// their coordinates in the fabric.
 		for_all_switch_nodes(sm_topop, nodep) {
-			dnodep = (DorNode_t*)(nodep->routingData);
+			dnodep = (DorBiuNode_t*)(nodep->routingData);
 
 			DEBUG_ASSERT(dnodep);
 			DEBUG_ASSERT(nodep->nodeInfo.NodeType == STL_NODE_SW);
@@ -3152,14 +3388,14 @@ _build_spanning_trees(void)
 
 	if (smDorRouting.debug) {
 		char buffer[32];
-		_coord_to_string(sm_topop,((DorNode_t*)(rootp->routingData))->coords,
+		_coord_to_string(sm_topop,((DorBiuNode_t*)(rootp->routingData))->coords,
 			buffer);
 		IB_LOG_INFINI_INFO_FMT(__func__,
 			"Node %s 0x%016"PRIx64" %s chosen as multicast root.",
 			sm_nodeDescString(rootp), rootp->nodeInfo.NodeGUID, buffer);
 	}
 
-	dnodep = (DorNode_t*)(rootp->routingData);
+	dnodep = (DorBiuNode_t*)(rootp->routingData);
 
 	DEBUG_ASSERT(dnodep);
 
@@ -3192,7 +3428,7 @@ _build_spanning_trees(void)
 			progress = 0;
 
 			for (i=0; i < dorTree->num_nodes; i++) {
-				DorNode_t *bestp = NULL;
+				DorBiuNode_t *bestp = NULL;
 				unsigned best_dim = 0;
 				unsigned is_left = 0;
 				McNode_t *mnodep = &(dorTree->nodes[i]);
@@ -3211,7 +3447,7 @@ _build_spanning_trees(void)
 						" to a valid node.", mnodep->index);
 					continue;
 				}
-				dnodep = (DorNode_t *)(nodep->routingData);
+				dnodep = (DorBiuNode_t *)(nodep->routingData);
 
 				tree_complete = 0;
 
@@ -3224,7 +3460,7 @@ _build_spanning_trees(void)
 				// reversed.
 				for (j=0; j < dorTop->numDimensions; j++) {
 					if (dnodep->left[j]) {
-						DorNode_t *lp = dnodep->left[j];
+						DorBiuNode_t *lp = dnodep->left[j];
 						unsigned s = _lookup_index(lp->coords);
 						if (dorTree->nodes[s].height < height &&
 							dorTree->nodes[s].height >= 0) {
@@ -3235,7 +3471,7 @@ _build_spanning_trees(void)
 						}
 					}
 					if (dnodep->right[j]) {
-						DorNode_t *rp = dnodep->right[j];
+						DorBiuNode_t *rp = dnodep->right[j];
 						unsigned s = _lookup_index(rp->coords);
 						if (dorTree->nodes[s].height < height &&
 							dorTree->nodes[s].height >= 0) {
@@ -3402,7 +3638,7 @@ _make_routing_module(RoutingModule_t * rm)
 Status_t
 sm_dorbiu_init(void)
 {
-	IB_LOG_INFINI_INFO_FMT(__func__,"I am dorbiu !");
+	IB_LOG_WARN_FMT(__func__,"I am dorbiu !");
 	return sm_routing_addModuleFac("dorbiu", _make_routing_module);
 }
 //------------------zp stop---------------------//

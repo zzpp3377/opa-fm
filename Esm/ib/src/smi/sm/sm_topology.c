@@ -80,6 +80,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(__VXWORKS__)
 #include "bspcommon/h/usrBootManager.h"
 #endif
+#ifdef BIU
+#include "string.h"
+#include "sm_dor.h"
+#include "sm_dorbiu.h"
+#endif
 
 extern uint8_t smTerminateAfter;
 extern char*   smDumpCounters;
@@ -1807,7 +1812,17 @@ topology_discovery(void)
 			}
 			if (portp->nodeno == -1 || portp->portno == -1) {
 				path[path[0]] = portp->index;		// Add this port to the end
+//#ifndef BIU
 				status = sm_setup_node(sm_topop, &preDefTopology, nodep, portp, path);
+//#else
+//				IB_LOG_WARN_FMT(__func__,"zp log : portp->index--%d portbiu--%d",portp->index,sm_config.smDorRouting.dimensionbiu.port);
+//				if((strcmp(sm_topop->routingModule->name,"dorbiu")!=0)||(portp->index!=sm_config.smDorRouting.dimensionbiu.port)){
+//					IB_LOG_WARN_FMT(__func__,"zp log : run sm_setup_node!");
+//					status = sm_setup_node(sm_topop, &preDefTopology, nodep, portp, path);
+//				}else{
+//					status = VSTATUS_OK;
+//				}
+//#endif
 			} else {
 				// PR 110535 Don't loop back to node that has already been discovered.
 				status = VSTATUS_OK;
@@ -2008,7 +2023,77 @@ topology_discovery(void)
 			}
 		}
 	}
+#ifdef BIU
+if(strcmp(sm_topop->routingModule->name,"dorbiu")==0){
+	Node_t *swnodep;
+	IB_LOG_WARN_FMT(__func__,"zp log : switch list start");
+	for_all_switch_nodes(sm_topop,swnodep){
+		DorBiuNode_t *swdornodep=(DorBiuNode_t*)swnodep->routingData;
+		int i=0;
+		int offset=0;
+		char string[BORBIU_COORDINATE_STRING_LEN]={0};
+		{
+			offset+=sprintf(string+offset,"(");
+			offset+=sprintf(string+offset,"%d:",SM_DOR_MAX_DIMENSIONS);
+			for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
+				offset+=sprintf(string+offset,"%d",swdornodep->coords[i]);
+				if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+					break;
+				}
+				if( i == (SM_DOR_MAX_DIMENSIONS-1) )continue;
+				offset+=sprintf(string+offset,",");
+			}
+			sprintf(string+offset,")");
+			IB_LOG_WARN_FMT(__func__,"zp log : swnode--%s ",string);
+		}
+	}
+	IB_LOG_WARN_FMT(__func__,"zp log : switch list end");
+	
+	IB_LOG_WARN_FMT(__func__,"zp log : link list start");
+	for_all_switch_nodes(sm_topop,swnodep){
+		DorBiuNode_t *swdornodep=(DorBiuNode_t*)swnodep->routingData;
+		int i=0;
+		for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
+			if(swdornodep->left[i]!=NULL){
+				IB_LOG_WARN_FMT(__func__,"zp log : %d-left->%d ",swdornodep->node->swIdx,swdornodep->left[i]->node->swIdx);
+			}
+			if(swdornodep->right[i]!=NULL){
+				IB_LOG_WARN_FMT(__func__,"zp log : %d-right->%d ",swdornodep->node->swIdx,swdornodep->right[i]->node->swIdx);
+			}
+		}
+		if(swdornodep->brother!=NULL){
+			IB_LOG_WARN_FMT(__func__,"zp log : %d-brother->%d ",swdornodep->node->swIdx,swdornodep->brother->swIdx);
+		}
+	}
+	IB_LOG_WARN_FMT(__func__,"zp log : link list end");
 
+/*	IB_LOG_WARN_FMT(__func__,"zp log : node list start");
+	for_all_nodes(sm_topop,nodep){
+		DorBiuNode_t *dornodep=(DorBiuNode_t*)nodep->routingData;
+		int i=0;
+		int offset=0;
+		char string[BORBIU_COORDINATE_STRING_LEN]={0};
+		{
+			offset+=sprintf(string+offset,"(");
+			offset+=sprintf(string+offset,"%d:",SM_DOR_MAX_DIMENSIONS);
+			for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
+				offset+=sprintf(string+offset,"%d",dornodep->coords[i]);
+				if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+					break;
+				}
+				if( i == (SM_DOR_MAX_DIMENSIONS-1) )continue;
+				offset+=sprintf(string+offset,",");
+			}
+			sprintf(string+offset,")");
+			IB_LOG_WARN_FMT(__func__,"zp log : node--%s ",string);
+		}
+	}
+	IB_LOG_WARN_FMT(__func__,"zp log : node list end");*/
+}
+	
+#endif 
     if (smDebugPerf) {
         vs_time_get(&eTime);
         IB_LOG_INFINI_INFO("END directed route exploration of fabric, elapsed time(usecs)=", 

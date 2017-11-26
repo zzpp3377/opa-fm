@@ -2647,10 +2647,10 @@ sm_setup_node(Topology_t * topop, FabricData_t * pdtop, Node_t * cnp, Port_t * c
 	// 
 	new_node = 0;
 
-	// 
-	// Check to see if this node is already in the current topology.
-	// 
-	if ((nodep = sm_find_guid(&sm_newTopology, nodeInfo.NodeGUID)) == NULL) {
+#ifdef BIU
+if(strcmp(sm_topop->routingModule->name,"dorbiu")==0){
+//	IB_LOG_WARN_FMT(__func__,"zp log : cpp->index--%d",cpp->index);
+	if (((nodep = sm_find_guid(&sm_newTopology, nodeInfo.NodeGUID)) == NULL)&&((cpp==NULL)||(cpp->index!=sm_config.smDorRouting.dimensionbiu.port))){
 		uint32 quarantineReasons = 0x00000000;
 
 		//
@@ -2856,7 +2856,290 @@ sm_setup_node(Topology_t * topop, FabricData_t * pdtop, Node_t * cnp, Port_t * c
 			cl_qmap_set_obj(&nodep->mapObj, nodep);
 		}
 
-	} else {
+	}else if ((nodep = sm_find_guid(&sm_newTopology, nodeInfo.NodeGUID)) != NULL){
+		uint32 quarantineReasons = 0x00000000;
+
+		// attacker may attempt to use valid node GUID of an existing node, so
+		// authenticate the node in order to determine whether to continue to
+		// allow the node to be part of the fabric.
+		authenticNode = sm_stl_authentic_node(topop, cnp, cpp, &nodeInfo, NULL, &quarantineReasons);
+		nodeDesc = nodep->nodeDesc;
+
+		// If the node is authentic and pre-defined topology is enabled, verify the node against the
+		// input topology.
+		if(authenticNode && sm_config.preDefTopo.enabled) {
+			authenticNode = sm_validate_predef_fields(topop, pdtop, cnp, cpp,
+				&nodeInfo, &nodeDesc, &quarantineReasons, &expNodeInfo, FALSE);
+		}
+
+		if (!authenticNode) {
+			Node_t *attackerNodep;
+
+			// get the node description from this attacker node, for it too may
+			// have been spoofed
+			if (SM_Get_NodeDesc(fd_topology, 0, path, &nodeDesc) != VSTATUS_OK)
+				strcpy((char *) nodeDesc.NodeString, "Not Available");
+
+			// create new node as a placeholder for the attacker node
+			Node_Create(topop, attackerNodep, nodeInfo, nodeInfo.NodeType,
+						nodeInfo.NumPorts + 1, nodeDesc, authenticNode);
+			if (attackerNodep == NULL) {
+				IB_LOG_ERROR_FMT(__func__,
+								 "cannot create a new node for attacker GUID: " FMT_U64,
+								 nodeInfo.NodeGUID);
+				IB_EXIT(__func__, VSTATUS_EIO);
+				return (VSTATUS_EIO);
+			}
+
+			//save path to attacker node
+			 memcpy((void *) attackerNodep->path, (void *) path, 64);
+			// quarantine the attacker node
+			(void) sm_stl_quarantine_node(topop, cnp, cpp, attackerNodep, quarantineReasons, &expNodeInfo, NULL);
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		}
+		
+		if (!sm_config.loopback_mode && (nodep->nodeInfo.NodeType != nodeInfo.NodeType ||
+				((nodep->nodeInfo.NodeType == NI_TYPE_CA && nodeInfo.NodeType == NI_TYPE_CA) && 
+				(nodep->nodeInfo.PortGUID == nodeInfo.PortGUID || nodeInfo.u1.s.LocalPortNum == nodep->nodeInfo.u1.s.LocalPortNum)))) {
+			char nodeDescStr[STL_NODE_DESCRIPTION_ARRAY_SIZE];
+			memcpy(nodeDescStr, nodeDesc.NodeString, STL_NODE_DESCRIPTION_ARRAY_SIZE);
+			nodeDescStr[STL_NODE_DESCRIPTION_ARRAY_SIZE - 1] = '\0';
+			IB_LOG_ERROR_FMT(__func__,
+							 "Duplicate NodeGuid for Node %s nodeType[%d] guid " FMT_U64 " and "
+							 "existing node[%d] nodeType=%d, %s, guid " FMT_U64,
+							 nodeDescStr, nodeInfo.NodeType, nodeInfo.NodeGUID,
+							 nodep->index, nodep->nodeInfo.NodeType, sm_nodeDescString(nodep),
+							 nodep->nodeInfo.NodeGUID);
+
+			return VSTATUS_BAD;
+		}
+
+		// potentially new port on existing node; check previous topology
+		// 
+		// only applies to FIs... we can hit a switch multiple times, but the
+		// end node is always the same port zero.  hitting a FI always
+		// results in a different end port
+		if (nodep->nodeInfo.NodeType == NI_TYPE_CA)
+			check_for_new_endnode(&nodeInfo, nodep, NULL);
+	}else if(((nodep = sm_find_guid(&sm_newTopology, nodeInfo.NodeGUID)) == NULL)&&(cpp->index==sm_config.smDorRouting.dimensionbiu.port)){
+		return VSTATUS_OK;
+	}
+
+
+
+	
+}else{
+	// 
+	// Check to see if this node is already in the current topology.
+	// 
+	if ((nodep = sm_find_guid(&sm_newTopology, nodeInfo.NodeGUID)) == NULL){
+		uint32 quarantineReasons = 0x00000000;
+
+		//
+		// Flag this node for extra work.
+		//
+		new_node = 1;
+
+		// 
+		// Get the NodeDescription.
+		// 
+		if ((status = SM_Get_NodeDesc(fd_topology, 0, path, &nodeDesc)) != VSTATUS_OK) {
+			if (!cpp && !cnp) {
+				IB_LOG_ERRORRC
+					("sm_setup_node: Get NodeDesc failed for local node, rc:",
+					 status);
+			} else {
+				IB_LOG_WARN_FMT(__func__,
+								"Get NodeDesc failed for node off Port %d of Node "
+								FMT_U64 ":%s, status = %d", cpp->index,
+								cnp->nodeInfo.NodeGUID, sm_nodeDescString(cnp),
+								status);
+			}
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		}
+
+		// Get the connected-port PortInfo, and save for later.
+		amod = portNumber;
+		status = SM_Get_PortInfo(fd_topology, (1 << 24) | amod | STL_SM_CONF_START_ATTR_MOD, path, &conPortInfo);
+		if (status != VSTATUS_OK) {
+
+			if(!cpp || !cnp) {
+				IB_LOG_WARN_FMT(__func__,
+								"Get Port Info failed for local port. Status =  %d", status);
+
+			} else {
+				IB_LOG_WARN_FMT(__func__,
+								"Get Port Info failed for port[%d] connected to Port %d of Node "
+								FMT_U64 ":%s, status = %d", portNumber, cpp->index,
+								cnp->nodeInfo.NodeGUID, sm_nodeDescString(cnp),
+								status);
+			}
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		} else conPIp = &conPortInfo;
+
+		//
+		// authenticate the node in order to determine whether to allow the
+		// node to be part of the fabric.
+		authenticNode = sm_stl_authentic_node(topop, cnp, cpp, &nodeInfo, conPIp, &quarantineReasons);
+
+		// If the node is authentic and pre-defined topology is enabled, verify the node against the
+		// input topology.
+		if(authenticNode && sm_config.preDefTopo.enabled) {
+			// If the Connected Port is Armed or Active, the port is going to be bounced so, force log only as Warn.
+			boolean forceLogAsWarn = (conPIp->PortStates.s.PortState > IB_PORT_INIT) ? TRUE : FALSE;
+			authenticNode = sm_validate_predef_fields(topop, pdtop, cnp, cpp,
+				&nodeInfo, &nodeDesc, &quarantineReasons, &expNodeInfo, forceLogAsWarn);
+		}
+		Node_Create(topop, nodep, nodeInfo, nodeInfo.NodeType, nodeInfo.NumPorts + 1, nodeDesc,
+					authenticNode);
+		if (nodep == NULL) {
+			IB_LOG_ERROR_FMT(__func__, "cannot create a new node for GUID: " FMT_U64,
+							 nodeInfo.NodeGUID);
+			IB_EXIT(__func__, VSTATUS_EIO);
+			return (VSTATUS_EIO);
+		}
+
+		memcpy((void *) nodep->path, (void *) path, 64);
+		// if node fails authentication, then quarantine the attacker node.
+		if (!authenticNode) {
+			status = VSTATUS_BAD;
+			if(cpp && cnp) {
+				// Bounce any ports on node which are Armed or Active
+				if(cpp->portData->portInfo.PortNeighborMode.NeighborNodeType == STL_NEIGH_NODE_TYPE_SW) {
+					//node type may be spoofed so set it to correct value:
+					nodep->nodeInfo.NodeType = NI_TYPE_SWITCH;
+					status = sm_bounce_all_switch_ports(topop, nodep, NULL, path);
+					if(status!=VSTATUS_OK) {
+						IB_LOG_WARN_FMT(__func__, "Unable to bounce potentially active ports on quarantined switch %s. Status: %d",
+											sm_nodeDescString(nodep), status);
+					}
+
+				} else { // HFI
+					//node type may be spoofed so set it to correct value:
+					nodep->nodeInfo.NodeType = NI_TYPE_CA;
+					// if it is a HFI, the max num of ports is 1
+					nodep->nodeInfo.NumPorts = 1;
+					if(conPIp->PortStates.s.PortState > IB_PORT_INIT) {
+						status = sm_bounce_link(topop, cnp, cpp);
+					}
+				}
+			}
+			if (status != VSTATUS_OK) {
+				// Quarantine Node only if the bounce did not happen, as the bounce
+				//  should set the port to DOWN and should be picked up and rechecked
+				//  for quarantine Next sweep when it is back in INIT
+				(void)sm_stl_quarantine_node(topop, cnp, cpp, nodep, quarantineReasons, &expNodeInfo, conPIp);
+			} else {
+				if (cpp && cnp) {
+					IB_LOG_WARN_FMT(__func__, "Neighbor of %s %s NodeGUID "FMT_U64" port %d could not be authenticated. Reports: "
+						"%s %s Guid "FMT_U64" Port %d: Actual: %s Guid "FMT_U64", Port %d)",
+						StlNodeTypeToText(cnp->nodeInfo.NodeType),
+						sm_nodeDescString(cnp), cnp->nodeInfo.NodeGUID, cpp->index,
+						//reports
+						StlNodeTypeToText(nodep->nodeInfo.NodeType),
+						sm_nodeDescString(nodep), nodep->nodeInfo.NodeGUID,
+						nodep->nodeInfo.u1.s.LocalPortNum,
+						//actual
+						OpaNeighborNodeTypeToText(cpp->portData->portInfo.PortNeighborMode.NeighborNodeType),
+						cpp->portData->portInfo.NeighborNodeGUID,
+						cpp->portData->portInfo.NeighborPortNum);
+					IB_LOG_WARN_FMT(__func__, "Link was bounced instead of quarantined to disable potentially unsecure traffic.");
+				}
+			}
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		}
+
+		nodep->index = topop->num_nodes++;
+
+		// Check to see if the node existed in the previous topology.
+		if (cache_nodep) {
+			oldnodep = cache_nodep;
+		} else {
+			oldnodep = sm_find_guid(&old_topology, nodeInfo.NodeGUID);
+		}
+
+		if (oldnodep != NULL) {
+			nodep->oldIndex = oldnodep->index;
+			nodep->oldExists = 1;
+			nodep->old = oldnodep;
+			oldnodep->old = NULL;
+		}
+
+		/* keep track of how many switch chips in fabric and which are newly added */
+		if (nodep->nodeInfo.NodeType == NI_TYPE_SWITCH) {
+			if (oldnodep != NULL) {
+				nodep->swIdx = oldnodep->swIdx;
+			} else {
+				lastIdx = -1;
+				nextIdx = bitset_find_first_zero(&old_switchesInUse);
+				while ((nextIdx < 0) || bitset_test(&new_switchesInUse, nextIdx)) {
+					if (nextIdx == -1) {
+						if (!bitset_resize
+							(&old_switchesInUse, old_switchesInUse.nbits_m + SM_NODE_NUM)
+							|| !bitset_resize(&new_switchesInUse,
+											  new_switchesInUse.nbits_m + SM_NODE_NUM)) {
+							// Can't track deltas, do full route check.
+							topology_changed = 1;
+							break;
+						}
+						if (lastIdx == -1) {
+							nextIdx = bitset_find_first_zero(&old_switchesInUse);
+						} else {
+							nextIdx = bitset_find_next_zero(&old_switchesInUse, lastIdx);
+						}
+					}
+					lastIdx = nextIdx;
+					nextIdx = bitset_find_next_zero(&old_switchesInUse, nextIdx + 1);
+				}
+				if (nextIdx < 0) {
+					// flag error
+					nodep->swIdx = topop->num_sws;
+				} else {
+					nodep->swIdx = nextIdx;
+				}
+			}
+			topop->num_sws++;
+			topop->max_sws = MAX(topop->max_sws, nodep->swIdx + 1);
+			bitset_set(&new_switchesInUse, nodep->swIdx);
+
+		}
+
+		// track all new switches and endnodes for LID additions
+		if (!oldnodep) {
+			if (mark_new_endnode(nodep) != VSTATUS_OK)
+				topology_changed = 1;
+		} else {
+			check_for_new_endnode(&nodeInfo, nodep, oldnodep);
+		}
+
+		nodep->asyncReqsSupported = sm_config.sma_batch_size;
+
+
+		// JPG Add NODE to sorted topo tree here
+		if (cl_qmap_insert
+			(sm_newTopology.nodeIdMap, (uint64_t) nodep->index,
+			 &nodep->nodeIdMapObj.item) != &nodep->nodeIdMapObj.item) {
+			IB_LOG_ERROR_FMT(__func__,
+				"Error adding Node Id: 0x%x to tree. Already in tree!",
+				nodep->index);
+		} else {
+			cl_qmap_set_obj(&nodep->nodeIdMapObj, nodep);
+		}
+		if (cl_qmap_insert
+			(sm_newTopology.nodeMap, nodep->nodeInfo.NodeGUID,
+			 &nodep->mapObj.item) != &nodep->mapObj.item) {
+			IB_LOG_ERROR_FMT(__func__,
+							 "Error adding Node GUID: " FMT_U64 " to tree. Already in tree!",
+							 nodep->nodeInfo.NodeGUID);
+		} else {
+			cl_qmap_set_obj(&nodep->mapObj, nodep);
+		}
+
+	}else {
 		uint32 quarantineReasons = 0x00000000;
 
 		// attacker may attempt to use valid node GUID of an existing node, so
@@ -2923,6 +3206,288 @@ sm_setup_node(Topology_t * topop, FabricData_t * pdtop, Node_t * cnp, Port_t * c
 		if (nodep->nodeInfo.NodeType == NI_TYPE_CA)
 			check_for_new_endnode(&nodeInfo, nodep, NULL);
 	}
+
+
+			
+}
+#else 
+	// 
+	// Check to see if this node is already in the current topology.
+	// 
+	if ((nodep = sm_find_guid(&sm_newTopology, nodeInfo.NodeGUID)) == NULL){
+		uint32 quarantineReasons = 0x00000000;
+
+		//
+		// Flag this node for extra work.
+		//
+		new_node = 1;
+
+		// 
+		// Get the NodeDescription.
+		// 
+		if ((status = SM_Get_NodeDesc(fd_topology, 0, path, &nodeDesc)) != VSTATUS_OK) {
+			if (!cpp && !cnp) {
+				IB_LOG_ERRORRC
+					("sm_setup_node: Get NodeDesc failed for local node, rc:",
+					 status);
+			} else {
+				IB_LOG_WARN_FMT(__func__,
+								"Get NodeDesc failed for node off Port %d of Node "
+								FMT_U64 ":%s, status = %d", cpp->index,
+								cnp->nodeInfo.NodeGUID, sm_nodeDescString(cnp),
+								status);
+			}
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		}
+
+		// Get the connected-port PortInfo, and save for later.
+		amod = portNumber;
+		status = SM_Get_PortInfo(fd_topology, (1 << 24) | amod | STL_SM_CONF_START_ATTR_MOD, path, &conPortInfo);
+		if (status != VSTATUS_OK) {
+
+			if(!cpp || !cnp) {
+				IB_LOG_WARN_FMT(__func__,
+								"Get Port Info failed for local port. Status =  %d", status);
+
+			} else {
+				IB_LOG_WARN_FMT(__func__,
+								"Get Port Info failed for port[%d] connected to Port %d of Node "
+								FMT_U64 ":%s, status = %d", portNumber, cpp->index,
+								cnp->nodeInfo.NodeGUID, sm_nodeDescString(cnp),
+								status);
+			}
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		} else conPIp = &conPortInfo;
+
+		//
+		// authenticate the node in order to determine whether to allow the
+		// node to be part of the fabric.
+		authenticNode = sm_stl_authentic_node(topop, cnp, cpp, &nodeInfo, conPIp, &quarantineReasons);
+
+		// If the node is authentic and pre-defined topology is enabled, verify the node against the
+		// input topology.
+		if(authenticNode && sm_config.preDefTopo.enabled) {
+			// If the Connected Port is Armed or Active, the port is going to be bounced so, force log only as Warn.
+			boolean forceLogAsWarn = (conPIp->PortStates.s.PortState > IB_PORT_INIT) ? TRUE : FALSE;
+			authenticNode = sm_validate_predef_fields(topop, pdtop, cnp, cpp,
+				&nodeInfo, &nodeDesc, &quarantineReasons, &expNodeInfo, forceLogAsWarn);
+		}
+		Node_Create(topop, nodep, nodeInfo, nodeInfo.NodeType, nodeInfo.NumPorts + 1, nodeDesc,
+					authenticNode);
+		if (nodep == NULL) {
+			IB_LOG_ERROR_FMT(__func__, "cannot create a new node for GUID: " FMT_U64,
+							 nodeInfo.NodeGUID);
+			IB_EXIT(__func__, VSTATUS_EIO);
+			return (VSTATUS_EIO);
+		}
+
+		memcpy((void *) nodep->path, (void *) path, 64);
+		// if node fails authentication, then quarantine the attacker node.
+		if (!authenticNode) {
+			status = VSTATUS_BAD;
+			if(cpp && cnp) {
+				// Bounce any ports on node which are Armed or Active
+				if(cpp->portData->portInfo.PortNeighborMode.NeighborNodeType == STL_NEIGH_NODE_TYPE_SW) {
+					//node type may be spoofed so set it to correct value:
+					nodep->nodeInfo.NodeType = NI_TYPE_SWITCH;
+					status = sm_bounce_all_switch_ports(topop, nodep, NULL, path);
+					if(status!=VSTATUS_OK) {
+						IB_LOG_WARN_FMT(__func__, "Unable to bounce potentially active ports on quarantined switch %s. Status: %d",
+											sm_nodeDescString(nodep), status);
+					}
+
+				} else { // HFI
+					//node type may be spoofed so set it to correct value:
+					nodep->nodeInfo.NodeType = NI_TYPE_CA;
+					// if it is a HFI, the max num of ports is 1
+					nodep->nodeInfo.NumPorts = 1;
+					if(conPIp->PortStates.s.PortState > IB_PORT_INIT) {
+						status = sm_bounce_link(topop, cnp, cpp);
+					}
+				}
+			}
+			if (status != VSTATUS_OK) {
+				// Quarantine Node only if the bounce did not happen, as the bounce
+				//  should set the port to DOWN and should be picked up and rechecked
+				//  for quarantine Next sweep when it is back in INIT
+				(void)sm_stl_quarantine_node(topop, cnp, cpp, nodep, quarantineReasons, &expNodeInfo, conPIp);
+			} else {
+				if (cpp && cnp) {
+					IB_LOG_WARN_FMT(__func__, "Neighbor of %s %s NodeGUID "FMT_U64" port %d could not be authenticated. Reports: "
+						"%s %s Guid "FMT_U64" Port %d: Actual: %s Guid "FMT_U64", Port %d)",
+						StlNodeTypeToText(cnp->nodeInfo.NodeType),
+						sm_nodeDescString(cnp), cnp->nodeInfo.NodeGUID, cpp->index,
+						//reports
+						StlNodeTypeToText(nodep->nodeInfo.NodeType),
+						sm_nodeDescString(nodep), nodep->nodeInfo.NodeGUID,
+						nodep->nodeInfo.u1.s.LocalPortNum,
+						//actual
+						OpaNeighborNodeTypeToText(cpp->portData->portInfo.PortNeighborMode.NeighborNodeType),
+						cpp->portData->portInfo.NeighborNodeGUID,
+						cpp->portData->portInfo.NeighborPortNum);
+					IB_LOG_WARN_FMT(__func__, "Link was bounced instead of quarantined to disable potentially unsecure traffic.");
+				}
+			}
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		}
+
+		nodep->index = topop->num_nodes++;
+
+		// Check to see if the node existed in the previous topology.
+		if (cache_nodep) {
+			oldnodep = cache_nodep;
+		} else {
+			oldnodep = sm_find_guid(&old_topology, nodeInfo.NodeGUID);
+		}
+
+		if (oldnodep != NULL) {
+			nodep->oldIndex = oldnodep->index;
+			nodep->oldExists = 1;
+			nodep->old = oldnodep;
+			oldnodep->old = NULL;
+		}
+
+		/* keep track of how many switch chips in fabric and which are newly added */
+		if (nodep->nodeInfo.NodeType == NI_TYPE_SWITCH) {
+			if (oldnodep != NULL) {
+				nodep->swIdx = oldnodep->swIdx;
+			} else {
+				lastIdx = -1;
+				nextIdx = bitset_find_first_zero(&old_switchesInUse);
+				while ((nextIdx < 0) || bitset_test(&new_switchesInUse, nextIdx)) {
+					if (nextIdx == -1) {
+						if (!bitset_resize
+							(&old_switchesInUse, old_switchesInUse.nbits_m + SM_NODE_NUM)
+							|| !bitset_resize(&new_switchesInUse,
+											  new_switchesInUse.nbits_m + SM_NODE_NUM)) {
+							// Can't track deltas, do full route check.
+							topology_changed = 1;
+							break;
+						}
+						if (lastIdx == -1) {
+							nextIdx = bitset_find_first_zero(&old_switchesInUse);
+						} else {
+							nextIdx = bitset_find_next_zero(&old_switchesInUse, lastIdx);
+						}
+					}
+					lastIdx = nextIdx;
+					nextIdx = bitset_find_next_zero(&old_switchesInUse, nextIdx + 1);
+				}
+				if (nextIdx < 0) {
+					// flag error
+					nodep->swIdx = topop->num_sws;
+				} else {
+					nodep->swIdx = nextIdx;
+				}
+			}
+			topop->num_sws++;
+			topop->max_sws = MAX(topop->max_sws, nodep->swIdx + 1);
+			bitset_set(&new_switchesInUse, nodep->swIdx);
+
+		}
+
+		// track all new switches and endnodes for LID additions
+		if (!oldnodep) {
+			if (mark_new_endnode(nodep) != VSTATUS_OK)
+				topology_changed = 1;
+		} else {
+			check_for_new_endnode(&nodeInfo, nodep, oldnodep);
+		}
+
+		nodep->asyncReqsSupported = sm_config.sma_batch_size;
+
+
+		// JPG Add NODE to sorted topo tree here
+		if (cl_qmap_insert
+			(sm_newTopology.nodeIdMap, (uint64_t) nodep->index,
+			 &nodep->nodeIdMapObj.item) != &nodep->nodeIdMapObj.item) {
+			IB_LOG_ERROR_FMT(__func__,
+				"Error adding Node Id: 0x%x to tree. Already in tree!",
+				nodep->index);
+		} else {
+			cl_qmap_set_obj(&nodep->nodeIdMapObj, nodep);
+		}
+		if (cl_qmap_insert
+			(sm_newTopology.nodeMap, nodep->nodeInfo.NodeGUID,
+			 &nodep->mapObj.item) != &nodep->mapObj.item) {
+			IB_LOG_ERROR_FMT(__func__,
+							 "Error adding Node GUID: " FMT_U64 " to tree. Already in tree!",
+							 nodep->nodeInfo.NodeGUID);
+		} else {
+			cl_qmap_set_obj(&nodep->mapObj, nodep);
+		}
+
+	}else {
+		uint32 quarantineReasons = 0x00000000;
+
+		// attacker may attempt to use valid node GUID of an existing node, so
+		// authenticate the node in order to determine whether to continue to
+		// allow the node to be part of the fabric.
+		authenticNode = sm_stl_authentic_node(topop, cnp, cpp, &nodeInfo, NULL, &quarantineReasons);
+		nodeDesc = nodep->nodeDesc;
+
+		// If the node is authentic and pre-defined topology is enabled, verify the node against the
+		// input topology.
+		if(authenticNode && sm_config.preDefTopo.enabled) {
+			authenticNode = sm_validate_predef_fields(topop, pdtop, cnp, cpp,
+				&nodeInfo, &nodeDesc, &quarantineReasons, &expNodeInfo, FALSE);
+		}
+
+		if (!authenticNode) {
+			Node_t *attackerNodep;
+
+			// get the node description from this attacker node, for it too may
+			// have been spoofed
+			if (SM_Get_NodeDesc(fd_topology, 0, path, &nodeDesc) != VSTATUS_OK)
+				strcpy((char *) nodeDesc.NodeString, "Not Available");
+
+			// create new node as a placeholder for the attacker node
+			Node_Create(topop, attackerNodep, nodeInfo, nodeInfo.NodeType,
+						nodeInfo.NumPorts + 1, nodeDesc, authenticNode);
+			if (attackerNodep == NULL) {
+				IB_LOG_ERROR_FMT(__func__,
+								 "cannot create a new node for attacker GUID: " FMT_U64,
+								 nodeInfo.NodeGUID);
+				IB_EXIT(__func__, VSTATUS_EIO);
+				return (VSTATUS_EIO);
+			}
+
+			//save path to attacker node
+			 memcpy((void *) attackerNodep->path, (void *) path, 64);
+			// quarantine the attacker node
+			(void) sm_stl_quarantine_node(topop, cnp, cpp, attackerNodep, quarantineReasons, &expNodeInfo, NULL);
+			IB_EXIT(__func__, VSTATUS_BAD);
+			return (VSTATUS_BAD);
+		}
+		
+		if (!sm_config.loopback_mode && (nodep->nodeInfo.NodeType != nodeInfo.NodeType ||
+				((nodep->nodeInfo.NodeType == NI_TYPE_CA && nodeInfo.NodeType == NI_TYPE_CA) && 
+				(nodep->nodeInfo.PortGUID == nodeInfo.PortGUID || nodeInfo.u1.s.LocalPortNum == nodep->nodeInfo.u1.s.LocalPortNum)))) {
+			char nodeDescStr[STL_NODE_DESCRIPTION_ARRAY_SIZE];
+			memcpy(nodeDescStr, nodeDesc.NodeString, STL_NODE_DESCRIPTION_ARRAY_SIZE);
+			nodeDescStr[STL_NODE_DESCRIPTION_ARRAY_SIZE - 1] = '\0';
+			IB_LOG_ERROR_FMT(__func__,
+							 "Duplicate NodeGuid for Node %s nodeType[%d] guid " FMT_U64 " and "
+							 "existing node[%d] nodeType=%d, %s, guid " FMT_U64,
+							 nodeDescStr, nodeInfo.NodeType, nodeInfo.NodeGUID,
+							 nodep->index, nodep->nodeInfo.NodeType, sm_nodeDescString(nodep),
+							 nodep->nodeInfo.NodeGUID);
+
+			return VSTATUS_BAD;
+		}
+
+		// potentially new port on existing node; check previous topology
+		// 
+		// only applies to FIs... we can hit a switch multiple times, but the
+		// end node is always the same port zero.  hitting a FI always
+		// results in a different end port
+		if (nodep->nodeInfo.NodeType == NI_TYPE_CA)
+			check_for_new_endnode(&nodeInfo, nodep, NULL);
+	}
+#endif 
 
 	// 
 	// JSY - Interop fix - CAL doesn't return the Guid for loopback discovery

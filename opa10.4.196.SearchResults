@@ -1,16 +1,16 @@
----- sm_datelineSwitchGUID Matches (15 in 5 files) ----
-Sm_dbsync.c (esm\ib\src\smi\sm):		outlen = sizeof(sm_datelineSwitchGUID);
-Sm_dbsync.c (esm\ib\src\smi\sm):		datelineGUID = hton64(sm_datelineSwitchGUID);
-Sm_dbsync.c (esm\ib\src\smi\sm):					sm_datelineSwitchGUID, syncReqp->portguid, syncReqp->standbyLid);
-Sm_dbsync.c (esm\ib\src\smi\sm):		sm_datelineSwitchGUID = ntoh64(datelineGUID);
-Sm_dbsync.c (esm\ib\src\smi\sm):			IB_LOG_INFINI_INFO_FMT(__func__, "Standby rcvd Dateline Switch GUID as "FMT_U64, sm_datelineSwitchGUID);
-Sm_dor.c (esm\ib\src\smi\sm):uint64_t sm_datelineSwitchGUID;
-Sm_dor.c (esm\ib\src\smi\sm):	switchp = sm_find_guid(topop, sm_datelineSwitchGUID);
-Sm_dor.c (esm\ib\src\smi\sm):		IB_LOG_INFO_FMT(__func__, "Unable to find assigned dateline switch at 0x"FMT_U64, sm_datelineSwitchGUID);
-Sm_dor.c (esm\ib\src\smi\sm):			sm_datelineSwitchGUID = topop->switch_head->nodeInfo.NodeGUID;
-Sm_dorbiu.c (esm\ib\src\smi\sm):uint64_t sm_datelineSwitchGUID;
-Sm_dorbiu.c (esm\ib\src\smi\sm):	switchp = sm_find_guid(topop, sm_datelineSwitchGUID);
-Sm_dorbiu.c (esm\ib\src\smi\sm):		IB_LOG_INFO_FMT(__func__, "Unable to find assigned dateline switch at 0x"FMT_U64, sm_datelineSwitchGUID);
-Sm_dorbiu.c (esm\ib\src\smi\sm):			sm_datelineSwitchGUID = topop->switch_head->nodeInfo.NodeGUID;
-Sm_l.h (esm\ib\src\smi\include):extern uint64_t sm_datelineSwitchGUID;
-Sm_main.c (esm\ib\src\smi\sm):	sm_datelineSwitchGUID = 0;
+---- sm_setup_node Matches (15 in 3 files) ----
+Sm_l.h (esm\ib\src\smi\include):Status_t	sm_setup_node(Topology_t *, FabricData_t *, Node_t *, Port_t *, uint8_t *);
+Sm_topology.c (esm\ib\src\smi\sm):	status = sm_setup_node(sm_topop, &preDefTopology, NULL, NULL,
+Sm_topology.c (esm\ib\src\smi\sm):	// sm_setup_node() had been run on our local node.
+Sm_topology.c (esm\ib\src\smi\sm):				status = sm_setup_node(sm_topop, &preDefTopology, nodep, portp, path);
+Sm_topology.c (esm\ib\src\smi\sm)://					IB_LOG_WARN_FMT(__func__,"zp log : run sm_setup_node!");
+Sm_topology.c (esm\ib\src\smi\sm)://					status = sm_setup_node(sm_topop, &preDefTopology, nodep, portp, path);
+Sm_utility.c (esm\ib\src\smi\sm)://    sm_setup_node     get NodeInfo and PortInfo for node       //
+Sm_utility.c (esm\ib\src\smi\sm)://through cnp and cpp. cnp and cpp should always be a trusted node. As called by sm_setup_node,
+Sm_utility.c (esm\ib\src\smi\sm):        IB_LOG_WARN0("sm_setup_node: No memory for quarantined node entry"); 
+Sm_utility.c (esm\ib\src\smi\sm):sm_setup_node(Topology_t * topop, FabricData_t * pdtop, Node_t * cnp, Port_t * cpp, uint8_t * path)
+Sm_utility.c (esm\ib\src\smi\sm):					("sm_setup_node: Get NodeDesc failed for local node, rc:",
+Sm_utility.c (esm\ib\src\smi\sm):					("sm_setup_node: Get NodeDesc failed for local node, rc:",
+Sm_utility.c (esm\ib\src\smi\sm):					("sm_setup_node: Get NodeDesc failed for local node, rc:",
+Sm_utility.c (esm\ib\src\smi\sm):		cs_log(VS_LOG_ERROR, "sm_setup_node", "get portNumber %d for node %s failed",
+Sm_utility.c (esm\ib\src\smi\sm):			cs_log(VS_LOG_ERROR, "sm_setup_node", "get port %d for node %s failed", i,

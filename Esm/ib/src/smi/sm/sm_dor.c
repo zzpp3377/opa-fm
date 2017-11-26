@@ -2227,6 +2227,11 @@ _discover_node(Topology_t *topop, Node_t *nodep, void *context)
 		}
 
 		if (neighborType == NI_TYPE_SWITCH) {
+
+#ifdef BIU
+			IB_LOG_WARN_FMT(__func__,"zp log : node--%d port--%d",nodep->index,p->index);
+#endif
+
 			dim = get_configured_dimension(p->index, neighbor_portno);
 			if (dim < 0 || dim >= MAX_DOR_DIMENSIONS) {
 				invalid = 1;

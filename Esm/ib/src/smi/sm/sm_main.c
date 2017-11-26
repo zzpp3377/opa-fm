@@ -1040,6 +1040,11 @@ Status_t sm_parse_xml_config(void) {
 	if (strncmp(sm_config.routing_algorithm, "dor", 32) == 0) {
 		sm_process_dor_info(initialVfPtr, &sm_config.smDorRouting);
 	}
+#ifdef BIU
+	else if (strncmp(sm_config.routing_algorithm, "dorbiu", 32) == 0) {
+		sm_process_dor_info(initialVfPtr, &sm_config.smDorRouting);
+	}
+#endif 
 
 	// Is Adaptive Routing Enabled
 	if (sm_config.adaptiveRouting.enable && !adaptiveRoutingDisable) {
@@ -1406,7 +1411,7 @@ sm_main(void) {
 	IB_ENTER(__func__, 0, 0, 0, 0);
 
 #ifdef BIU
-	IB_LOG_INFINI_INFO_FMT(__func__,"zp_log: I am here!");
+	IB_LOG_INFINI_INFO_FMT(__func__,"zp log: I am here!");
 #endif 
 
 //
@@ -1597,6 +1602,10 @@ sm_main(void) {
 	status = sm_routing_makeCopy(&old_topology.routingModule,
 		sm_main_routingModule);
 
+#ifdef BIU
+	IB_LOG_INFINI_INFO_FMT(__func__,"zp log: routing---%s",old_topology.routingModule->name);
+#endif
+
 	if (status != VSTATUS_OK) {
 		IB_LOG_ERROR_FMT(__func__, "Failed to copy main thread routing module");
 		return status;
@@ -1746,8 +1755,8 @@ sm_main(void) {
 	IB_LOG_INFO("fd_atopology", fd_atopology);
 	IB_LOG_INFO("fd_loopTest", fd_loopTest);
 #ifdef BIU
-//	IB_LOG_INFO("zp_log: BIU port  ", sm_config.smDorRouting.dimensionbiu.port);
-	IB_LOG_INFINI_INFO_FMT(__func__,"zp_log: BIU port--%d",sm_config.smDorRouting.dimensionbiu.port);
+//	IB_LOG_INFO("zp log: BIU port  ", sm_config.smDorRouting.dimensionbiu.port);
+	IB_LOG_INFINI_INFO_FMT(__func__,"zp log: BIU port--%d",sm_config.smDorRouting.dimensionbiu.port);
 #endif 
     //
     //	Create the SMInfo_t structure.
