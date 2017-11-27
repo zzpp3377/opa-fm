@@ -1,16 +1,11 @@
----- sm_setup_node Matches (15 in 3 files) ----
-Sm_l.h (esm\ib\src\smi\include):Status_t	sm_setup_node(Topology_t *, FabricData_t *, Node_t *, Port_t *, uint8_t *);
-Sm_topology.c (esm\ib\src\smi\sm):	status = sm_setup_node(sm_topop, &preDefTopology, NULL, NULL,
-Sm_topology.c (esm\ib\src\smi\sm):	// sm_setup_node() had been run on our local node.
-Sm_topology.c (esm\ib\src\smi\sm):				status = sm_setup_node(sm_topop, &preDefTopology, nodep, portp, path);
-Sm_topology.c (esm\ib\src\smi\sm)://					IB_LOG_WARN_FMT(__func__,"zp log : run sm_setup_node!");
-Sm_topology.c (esm\ib\src\smi\sm)://					status = sm_setup_node(sm_topop, &preDefTopology, nodep, portp, path);
-Sm_utility.c (esm\ib\src\smi\sm)://    sm_setup_node     get NodeInfo and PortInfo for node       //
-Sm_utility.c (esm\ib\src\smi\sm)://through cnp and cpp. cnp and cpp should always be a trusted node. As called by sm_setup_node,
-Sm_utility.c (esm\ib\src\smi\sm):        IB_LOG_WARN0("sm_setup_node: No memory for quarantined node entry"); 
-Sm_utility.c (esm\ib\src\smi\sm):sm_setup_node(Topology_t * topop, FabricData_t * pdtop, Node_t * cnp, Port_t * cpp, uint8_t * path)
-Sm_utility.c (esm\ib\src\smi\sm):					("sm_setup_node: Get NodeDesc failed for local node, rc:",
-Sm_utility.c (esm\ib\src\smi\sm):					("sm_setup_node: Get NodeDesc failed for local node, rc:",
-Sm_utility.c (esm\ib\src\smi\sm):					("sm_setup_node: Get NodeDesc failed for local node, rc:",
-Sm_utility.c (esm\ib\src\smi\sm):		cs_log(VS_LOG_ERROR, "sm_setup_node", "get portNumber %d for node %s failed",
-Sm_utility.c (esm\ib\src\smi\sm):			cs_log(VS_LOG_ERROR, "sm_setup_node", "get port %d for node %s failed", i,
+---- topop->pad Matches (10 in 5 files) ----
+Sm_dor.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
+Sm_dor.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
+Sm_dorbiu.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
+Sm_dorbiu.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
+Sm_hypercube.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
+Sm_hypercube.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
+sm_partMgr.c (esm\ib\src\smi\sm):	pkp = (STL_PARTITION_TABLE *)topop->pad;
+Sm_routing_funcs.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
+Sm_routing_funcs.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t * ordered_ports = (SwitchportToNextGuid_t*) topop->pad;
+Sm_routing_funcs.c (esm\ib\src\smi\sm):	SwitchportToNextGuid_t *ordered_ports = (SwitchportToNextGuid_t *)topop->pad;
