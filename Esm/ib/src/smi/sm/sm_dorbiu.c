@@ -2452,9 +2452,10 @@ _discover_node(Topology_t *topop, Node_t *nodep, void *context)
 
 		if (neighborType == NI_TYPE_SWITCH) {
 //---------------------zp start---------------------//
-			IB_LOG_WARN_FMT(__func__,"zp log : node--%d port--%d",nodep->index,p->index);
 			DorBiuDiscoveryState_t* state=(DorBiuDiscoveryState_t*)context;
-			if((p->index==state->portbiu)&&(neighbor_portp->index==state->portbiu)){
+			IB_LOG_WARN_FMT(__func__,"zp log : node--%d port--%d",nodep->index,p->index);
+//			if((p->index==state->portbiu)&&(neighbor_portp->index==state->portbiu)){
+			if((p->index==state->portbiu)&&(neighbor_portno==state->portbiu)){
 				IB_LOG_WARN_FMT(__func__,"zp log : run continue, node--%d port--%d",nodep->index,p->index);
 				continue;
 			}
