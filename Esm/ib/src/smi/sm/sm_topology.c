@@ -2023,8 +2023,8 @@ topology_discovery(void)
 			}
 		}
 	}
-#ifdef BIU
-if(strcmp(sm_topop->routingModule->name,"dorbiu")==0){
+#if (defined BIU)||(defined BIUSI)
+if(strcmp(sm_topop->routingModule->name,"dorbiu")==0||strcmp(sm_topop->routingModule->name,"dorbiusi")==0){
 	Node_t *swnodep;
 	IB_LOG_WARN_FMT(__func__,"zp log : switch list start");
 	for_all_switch_nodes(sm_topop,swnodep){

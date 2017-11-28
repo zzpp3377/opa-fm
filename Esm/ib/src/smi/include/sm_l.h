@@ -2358,7 +2358,12 @@ Status_t sm_dor_init(void);
 //
 Status_t sm_dorbiu_init(void);
 #endif
-
+#ifdef BIUSI
+//
+// sm_dorbiuSi.c prototypes
+//
+Status_t sm_dorbiuSi_init(void);
+#endif
 //
 // sm_dispatch.c prototypes
 //

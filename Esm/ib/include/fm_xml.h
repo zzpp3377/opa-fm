@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 //----------------------------zp biu start------------------------------//
 #define BIU
+#define BIUSI
 //----------------------------zp biu stop-------------------------------//
 #ifndef __VXWORKS__
 #define MAX_SUBNET_SIZE						64000		// HSM has no realistic max

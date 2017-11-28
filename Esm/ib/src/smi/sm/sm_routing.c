@@ -603,7 +603,14 @@ sm_routing_init(void)
 	if (status != VSTATUS_OK)
 		return status;
 #endif
-
+#ifdef BIUSI
+	IB_LOG_WARN_FMT(__func__,"try to init dorbiusi!");
+	status =sm_dorbiuSi_init();
+	if (status != VSTATUS_OK){
+		IB_LOG_WARN_FMT(__func__,"init dorbiusi failed!");	
+		return status;
+	}
+#endif
 	status = sm_dor_init();
 	return status;
 }

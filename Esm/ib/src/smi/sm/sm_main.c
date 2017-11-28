@@ -1045,6 +1045,12 @@ Status_t sm_parse_xml_config(void) {
 		sm_process_dor_info(initialVfPtr, &sm_config.smDorRouting);
 	}
 #endif 
+#ifdef BIUSI
+	else if (strncmp(sm_config.routing_algorithm, "dorbiusi", 32) == 0) {
+		sm_process_dor_info(initialVfPtr, &sm_config.smDorRouting);
+	}
+#endif 
+
 
 	// Is Adaptive Routing Enabled
 	if (sm_config.adaptiveRouting.enable && !adaptiveRoutingDisable) {

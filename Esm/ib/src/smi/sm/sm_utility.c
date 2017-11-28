@@ -2647,8 +2647,8 @@ sm_setup_node(Topology_t * topop, FabricData_t * pdtop, Node_t * cnp, Port_t * c
 	// 
 	new_node = 0;
 
-#ifdef BIU
-if(strcmp(sm_topop->routingModule->name,"dorbiu")==0){
+#if (defined BIU)||(defined BIUSI)
+if(strcmp(sm_topop->routingModule->name,"dorbiu")==0||strcmp(sm_topop->routingModule->name,"dorbiusi")==0){
 //	IB_LOG_WARN_FMT(__func__,"zp log : cpp->index--%d",cpp->index);
 	if (((nodep = sm_find_guid(&sm_newTopology, nodeInfo.NodeGUID)) == NULL)&&((cpp==NULL)||(cpp->index!=sm_config.smDorRouting.dimensionbiu.port))){
 		uint32 quarantineReasons = 0x00000000;
