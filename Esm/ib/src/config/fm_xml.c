@@ -6216,6 +6216,7 @@ static IXML_FIELD SmDimensionFields[] = {
 #ifdef BIU
 static IXML_FIELD SmDimensionBiuFields[] = {
 	{ tag:"PortBiu", format:'u', IXML_FIELD_INFO(SmDimensionBiu_t, port)},
+	{ tag:"NumBiuInSi",format:'u',IXML_FIELD_INFO(SmDimensionBiu_t, numBiuInSi)},
 	{ NULL }
 };
 #endif

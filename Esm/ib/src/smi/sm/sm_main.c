@@ -1763,6 +1763,7 @@ sm_main(void) {
 #ifdef BIU
 //	IB_LOG_INFO("zp log: BIU port  ", sm_config.smDorRouting.dimensionbiu.port);
 	IB_LOG_INFINI_INFO_FMT(__func__,"zp log: BIU port--%d",sm_config.smDorRouting.dimensionbiu.port);
+	IB_LOG_INFINI_INFO_FMT(__func__,"zp log: number BIU in a Si--%d",sm_config.smDorRouting.dimensionbiu.numBiuInSi);
 #endif 
     //
     //	Create the SMInfo_t structure.

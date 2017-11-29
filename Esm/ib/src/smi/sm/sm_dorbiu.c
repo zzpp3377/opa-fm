@@ -946,14 +946,14 @@ _propagate_coord_through_port(DorBiuDiscoveryState_t *state,
 //-------------------------------------zp start--------------------------//
 	int i=0;
 	int offset=0;
-	char string[BORBIU_COORDINATE_STRING_LEN]={0};
+	char string[DORBIU_COORDINATE_STRING_LEN]={0};
 	{
 		offset=sprintf(string,"(");
 		offset+=sprintf(string+offset,"%d:",SM_DOR_MAX_DIMENSIONS);
 		for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
 			offset+=sprintf(string+offset,"%d",neighborDorNode->coords[i]);
-			if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
-				IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+			if(offset>(DORBIU_COORDINATE_STRING_LEN/4*3)){
+				IB_LOG_WARN_FMT(__func__,"zp log : DORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
 				break;
 			}
 			if( i == (SM_DOR_MAX_DIMENSIONS-1) )continue;
@@ -1087,13 +1087,13 @@ _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection di
 				
 				int i=0;
 				int offset=0;
-				char string[BORBIU_COORDINATE_STRING_LEN]="";
+				char string[DORBIU_COORDINATE_STRING_LEN]="";
 				{
 					offset+=sprintf(string+offset,"src:(");
 					for(i=0;i<dorTop->numDimensions;i++){
 						offset+=sprintf(string+offset,"%d",srcDnp->coords[i]);
-						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
-							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+						if(offset>(DORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : DORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
 							break;
 						}
 						if( i == (dorTop->numDimensions-1) )continue;
@@ -1106,8 +1106,8 @@ _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection di
 					offset+=sprintf(string+offset," , dest:(");
 					for(i=0;i<dorTop->numDimensions;i++){
 						offset+=sprintf(string+offset,"%d",dstDnp->coords[i]);
-						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
-							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+						if(offset>(DORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : DORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
 							break;
 						}
 						if( i == (dorTop->numDimensions-1) )continue;
@@ -1143,13 +1143,13 @@ _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection di
 
 				int i=0;
 				int offset=0;
-				char string[BORBIU_COORDINATE_STRING_LEN]="";
+				char string[DORBIU_COORDINATE_STRING_LEN]="";
 				{
 					offset+=sprintf(string+offset,"src:(");
 					for(i=0;i<dorTop->numDimensions;i++){
 						offset+=sprintf(string+offset,"%d",srcDnp->coords[i]);
-						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
-							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+						if(offset>(DORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : DORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
 							break;
 						}
 						if( i == (dorTop->numDimensions-1) )continue;
@@ -1162,8 +1162,8 @@ _is_path_realizable(Topology_t *topop, Node_t *src, Node_t *dst, DorDirection di
 					offset+=sprintf(string+offset," , dest:(");
 					for(i=0;i<dorTop->numDimensions;i++){
 						offset+=sprintf(string+offset,"%d",dstDnp->coords[i]);
-						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
-							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+						if(offset>(DORBIU_COORDINATE_STRING_LEN/4*3)){
+							IB_LOG_WARN_FMT(__func__,"zp log : DORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
 							break;
 						}
 						if( i == (dorTop->numDimensions-1) )continue;
@@ -2665,6 +2665,53 @@ _discover_node_port(Topology_t *topop, Node_t *nodep, Port_t *portp, void *conte
 
 	return _propagate_coord_through_port((DorBiuDiscoveryState_t *)context, topop, nodep, portp);
 }
+//------------------------zp start----------------------------//
+static void _print_discover_info(Topology_t *topop){
+	Node_t *swnodep;
+	IB_LOG_WARN_FMT(__func__,"zp log : switch list start");
+	for_all_switch_nodes(topop,swnodep){
+		DorBiuNode_t *swdornodep=(DorBiuNode_t*)swnodep->routingData;
+		int i=0;
+		int offset=0;
+		char string[DORBIU_COORDINATE_STRING_LEN]={0};
+		{
+			offset+=sprintf(string+offset,"(");
+			offset+=sprintf(string+offset,"%d:",SM_DOR_MAX_DIMENSIONS);
+			for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
+				offset+=sprintf(string+offset,"%d",swdornodep->coords[i]);
+				if(offset>(DORBIU_COORDINATE_STRING_LEN/4*3)){
+					IB_LOG_WARN_FMT(__func__,"zp log : DORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+					break;
+				}
+				if( i == (SM_DOR_MAX_DIMENSIONS-1) )continue;
+				offset+=sprintf(string+offset,",");
+			}
+			sprintf(string+offset,")");
+			IB_LOG_WARN_FMT(__func__,"zp log : swnode--%s ",string);
+		}
+	}
+	IB_LOG_WARN_FMT(__func__,"zp log : switch list end");
+	
+	IB_LOG_WARN_FMT(__func__,"zp log : link list start");
+	for_all_switch_nodes(topop,swnodep){
+		DorBiuNode_t *swdornodep=(DorBiuNode_t*)swnodep->routingData;
+		int i=0;
+		for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
+			if(swdornodep->left[i]!=NULL){
+				IB_LOG_WARN_FMT(__func__,"zp log : %d-left->%d ",swdornodep->node->swIdx,swdornodep->left[i]->node->swIdx);
+			}
+			if(swdornodep->right[i]!=NULL){
+				IB_LOG_WARN_FMT(__func__,"zp log : %d-right->%d ",swdornodep->node->swIdx,swdornodep->right[i]->node->swIdx);
+			}
+		}
+		if(swdornodep->brother!=NULL){
+			IB_LOG_WARN_FMT(__func__,"zp log : %d-brother->%d ",swdornodep->node->swIdx,swdornodep->brother->swIdx);
+		}
+	}
+	IB_LOG_WARN_FMT(__func__,"zp log : link list end");
+}
+//------------------------zp stop-----------------------------//
+
 
 static Status_t
 _post_process_discovery(Topology_t *topop, Status_t discoveryStatus, void *context)
@@ -2811,6 +2858,9 @@ _post_process_discovery(Topology_t *topop, Status_t discoveryStatus, void *conte
 
 	if (smDorRouting.debug)
 		_verify_coordinates(topop);
+//----------------------------zp start---------------------------//
+	_print_discover_info(topop);
+//----------------------------zp stop----------------------------//
 
 	return VSTATUS_OK;
 }

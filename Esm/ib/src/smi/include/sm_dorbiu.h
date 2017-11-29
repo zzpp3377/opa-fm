@@ -172,7 +172,7 @@ typedef struct _DorBiuDiscoveryState {
 } DorBiuDiscoveryState_t;
 
 //----------------------zp start-------------------//
-#define BORBIU_COORDINATE_STRING_LEN 200
+#define DORBIU_COORDINATE_STRING_LEN 2000
 //----------------------zp stop--------------------//
 
 #endif

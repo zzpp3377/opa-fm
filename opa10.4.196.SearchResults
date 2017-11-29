@@ -1,8 +1,42 @@
----- dorbiu Matches (7 in 4 files) ----
-Sm_dorbiu.c (esm\ib\src\smi\sm):	rm->name = "dorbiu";
-Sm_dorbiu.c (esm\ib\src\smi\sm):	IB_LOG_WARN_FMT(__func__,"I am dorbiu !");
-Sm_dorbiu.c (esm\ib\src\smi\sm):	return sm_routing_addModuleFac("dorbiu", _make_routing_module);
-Sm_main.c (esm\ib\src\smi\sm):	else if (strncmp(sm_config.routing_algorithm, "dorbiu", 32) == 0) {
-Sm_topology.c (esm\ib\src\smi\sm)://				if((strcmp(sm_topop->routingModule->name,"dorbiu")!=0)||(portp->index!=sm_config.smDorRouting.dimensionbiu.port)){
-Sm_topology.c (esm\ib\src\smi\sm):if(strcmp(sm_topop->routingModule->name,"dorbiu")==0||strcmp(sm_topop->routingModule->name,"dorbiusi")==0){
-Sm_utility.c (esm\ib\src\smi\sm):if(strcmp(sm_topop->routingModule->name,"dorbiu")==0||strcmp(sm_topop->routingModule->name,"dorbiusi")==0){
+---- BORBIU_COORDINATE_STRING_LEN Matches (41 in 5 files) ----
+Sm_dorbiu.c (esm\ib\src\smi\sm):	char string[BORBIU_COORDINATE_STRING_LEN]={0};
+Sm_dorbiu.c (esm\ib\src\smi\sm):			if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+Sm_dorbiu.c (esm\ib\src\smi\sm):				IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+Sm_dorbiu.c (esm\ib\src\smi\sm):				char string[BORBIU_COORDINATE_STRING_LEN]="";
+Sm_dorbiu.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+Sm_dorbiu.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+Sm_dorbiu.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+Sm_dorbiu.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+Sm_dorbiu.c (esm\ib\src\smi\sm):				char string[BORBIU_COORDINATE_STRING_LEN]="";
+Sm_dorbiu.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+Sm_dorbiu.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+Sm_dorbiu.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+Sm_dorbiu.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+Sm_dorbiu.c (esm\ib\src\smi\sm):		char string[BORBIU_COORDINATE_STRING_LEN]={0};
+Sm_dorbiu.c (esm\ib\src\smi\sm):				if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+Sm_dorbiu.c (esm\ib\src\smi\sm):					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+Sm_dorbiu.h (esm\ib\src\smi\include):#define BORBIU_COORDINATE_STRING_LEN 2000
+sm_dorbiuSi.c (esm\ib\src\smi\sm):	char string[BORBIU_COORDINATE_STRING_LEN]={0};
+sm_dorbiuSi.c (esm\ib\src\smi\sm):			if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+sm_dorbiuSi.c (esm\ib\src\smi\sm):				IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+sm_dorbiuSi.c (esm\ib\src\smi\sm):				char string[BORBIU_COORDINATE_STRING_LEN]="";
+sm_dorbiuSi.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+sm_dorbiuSi.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+sm_dorbiuSi.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+sm_dorbiuSi.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+sm_dorbiuSi.c (esm\ib\src\smi\sm):				char string[BORBIU_COORDINATE_STRING_LEN]="";
+sm_dorbiuSi.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+sm_dorbiuSi.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+sm_dorbiuSi.c (esm\ib\src\smi\sm):						if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+sm_dorbiuSi.c (esm\ib\src\smi\sm):							IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+sm_dorbiuSi.c (esm\ib\src\smi\sm)://		char string[BORBIU_COORDINATE_STRING_LEN]={0};
+sm_dorbiuSi.c (esm\ib\src\smi\sm):					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+sm_dorbiuSi.c (esm\ib\src\smi\sm):	char string[BORBIU_COORDINATE_STRING_LEN]={0};
+sm_dorbiuSi.c (esm\ib\src\smi\sm):		char string[BORBIU_COORDINATE_STRING_LEN]={0};
+sm_dorbiuSi.c (esm\ib\src\smi\sm):				if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+sm_dorbiuSi.c (esm\ib\src\smi\sm):					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+sm_dorbiuSi.c (esm\ib\src\smi\sm):		_print_swnode_coordinate(swnodep,string,BORBIU_COORDINATE_STRING_LEN);
+sm_dorbiuSi.h (esm\ib\src\smi\include):#define BORBIU_COORDINATE_STRING_LEN 200
+Sm_topology.c (esm\ib\src\smi\sm):		char string[BORBIU_COORDINATE_STRING_LEN]={0};
+Sm_topology.c (esm\ib\src\smi\sm):				if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
+Sm_topology.c (esm\ib\src\smi\sm):					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");

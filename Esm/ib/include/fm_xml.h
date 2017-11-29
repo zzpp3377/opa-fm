@@ -814,6 +814,7 @@ typedef struct _SmDimension {
 #ifdef BIU
 typedef struct _SmDimensionBiu {
 	uint8_t 			port;
+	uint8_t				numBiuInSi;
 } SmDimensionBiu_t;
 #endif
 

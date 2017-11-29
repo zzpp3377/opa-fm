@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //===========================================================================//
 
-#ifndef	_SM_DORBIU_H_
-#define	_SM_DORBIU_H_
+#ifndef	_SM_DORBIUSI_H_
+#define	_SM_DORBIUSI_H_
 
 /*
 #define SM_DOR_MAX_TOROIDAL_DIMENSIONS 6
@@ -78,17 +78,18 @@ static __inline__ int ijBiuGet(uint32* ijBitmap, int ij){
 }
 
 // DOR Topology Information
-//
-typedef struct _DorBiuNode {
+*/
+typedef struct _DorBiuSiNode {
 	int8_t			coords[SM_DOR_MAX_DIMENSIONS];
 	Node_t			*node;
 	int			multipleBrokenDims;
 	struct _DorBiuNode *left[SM_DOR_MAX_DIMENSIONS];
 	struct _DorBiuNode *right[SM_DOR_MAX_DIMENSIONS];
 //--------------------zp start----------------//
-	Node_t 			*brother;     //the node connected by biu link  			
+	Node_t 			*brother;     //the node connected by biu link
+	Node_t			*comNode;		//the communication node
 //--------------------zp stop-----------------//
-} DorBiuNode_t;
+} DorBiuSiNode_t;
 
 /*
 typedef struct  _DorTopology {
@@ -160,19 +161,21 @@ typedef struct _DorDimension {
 	uint8_t			hyperlink;
 	cl_map_obj_t	portObj;
 } DorDimension_t;
-
-typedef struct _DorBiuDiscoveryState {
+*/
+typedef struct _DorBiuSiDiscoveryState {
 	uint8_t			nextDimension;
 	uint8_t			toroidalOverflow;
 	uint8_t			scsAvailable; // min of SC support of all fabric ISLs
 	DorDimension_t	*dimensionMap[256]; // indexed by egress port
 	//-----------------zp start----------------------//
 	uint8_t         portbiu;
+	uint8_t 		numBiuInSi;
 	//-----------------zp stop-----------------------//
-} DorBiuDiscoveryState_t;
-
+} DorBiuSiDiscoveryState_t;
+/*
 //----------------------zp start-------------------//
-#define BORBIU_COORDINATE_STRING_LEN 200
+#define DORBIU_COORDINATE_STRING_LEN 200
 //----------------------zp stop--------------------//
 */
+
 #endif

@@ -2023,6 +2023,7 @@ topology_discovery(void)
 			}
 		}
 	}
+/*
 #if (defined BIU)||(defined BIUSI)
 if(strcmp(sm_topop->routingModule->name,"dorbiu")==0||strcmp(sm_topop->routingModule->name,"dorbiusi")==0){
 	Node_t *swnodep;
@@ -2031,14 +2032,14 @@ if(strcmp(sm_topop->routingModule->name,"dorbiu")==0||strcmp(sm_topop->routingMo
 		DorBiuNode_t *swdornodep=(DorBiuNode_t*)swnodep->routingData;
 		int i=0;
 		int offset=0;
-		char string[BORBIU_COORDINATE_STRING_LEN]={0};
+		char string[DORBIU_COORDINATE_STRING_LEN]={0};
 		{
 			offset+=sprintf(string+offset,"(");
 			offset+=sprintf(string+offset,"%d:",SM_DOR_MAX_DIMENSIONS);
 			for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
 				offset+=sprintf(string+offset,"%d",swdornodep->coords[i]);
-				if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
-					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
+				if(offset>(DORBIU_COORDINATE_STRING_LEN/4*3)){
+					IB_LOG_WARN_FMT(__func__,"zp log : DORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
 					break;
 				}
 				if( i == (SM_DOR_MAX_DIMENSIONS-1) )continue;
@@ -2067,33 +2068,10 @@ if(strcmp(sm_topop->routingModule->name,"dorbiu")==0||strcmp(sm_topop->routingMo
 		}
 	}
 	IB_LOG_WARN_FMT(__func__,"zp log : link list end");
-
-/*	IB_LOG_WARN_FMT(__func__,"zp log : node list start");
-	for_all_nodes(sm_topop,nodep){
-		DorBiuNode_t *dornodep=(DorBiuNode_t*)nodep->routingData;
-		int i=0;
-		int offset=0;
-		char string[BORBIU_COORDINATE_STRING_LEN]={0};
-		{
-			offset+=sprintf(string+offset,"(");
-			offset+=sprintf(string+offset,"%d:",SM_DOR_MAX_DIMENSIONS);
-			for(i=0;i<SM_DOR_MAX_DIMENSIONS;i++){
-				offset+=sprintf(string+offset,"%d",dornodep->coords[i]);
-				if(offset>(BORBIU_COORDINATE_STRING_LEN/4*3)){
-					IB_LOG_WARN_FMT(__func__,"zp log : BORBIU_COORDINATE_STRING_LEN is too small to show coordinate !");
-					break;
-				}
-				if( i == (SM_DOR_MAX_DIMENSIONS-1) )continue;
-				offset+=sprintf(string+offset,",");
-			}
-			sprintf(string+offset,")");
-			IB_LOG_WARN_FMT(__func__,"zp log : node--%s ",string);
-		}
-	}
-	IB_LOG_WARN_FMT(__func__,"zp log : node list end");*/
 }
 	
 #endif 
+*/
     if (smDebugPerf) {
         vs_time_get(&eTime);
         IB_LOG_INFINI_INFO("END directed route exploration of fabric, elapsed time(usecs)=", 
