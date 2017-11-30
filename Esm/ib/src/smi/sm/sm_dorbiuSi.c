@@ -2104,6 +2104,7 @@ _get_dor_port_group(Topology_t *topop, Node_t *switchp, Node_t* toSwitchp, uint8
 		return 0;
 	}
 //------------------------------zp start----------------------------//
+/*
 	Node_t *brother=((DorBiuSiNode_t*)toSwitchp->routingData)->brother;
 	uint32_t * firstdormap=NULL;
 	uint32_t * seconddormap=NULL;
@@ -2150,7 +2151,71 @@ _get_dor_port_group(Topology_t *topop, Node_t *switchp, Node_t* toSwitchp, uint8
 				_add_ports(switchp, srcDnp->right[routingDim]->node, ordered_ports, &count);
 			}
 		}
-	
+*/
+	Node_t *brother=NULL;
+	Node_t *comm=((DorBiuSiNode_t *)toSwitchp->routingData)->comNode;
+	uint32_t * firstdormap=NULL;
+	uint32_t * seconddormap=NULL;
+	int dorbiuSiFlag=1;
+	if(comm!=NULL){
+		int comm2dest=0;
+		int commij=DorBitMapsIndex(comm->swIdx,toSwitchp->swIdx);
+		brother=((DorBiuSiNode_t*)comm->routingData)->brother;
+		if(comm==toSwitchp){
+			comm2dest=0;
+		}else if(dorBiuClosure(topop,comm->swIdx,toSwitchp->swIdx)){
+			if(ijBiuTest(dorTop->dorLeft,commij))
+				comm2dest=ijBiuGet(dorTop->dorLeft,commij);
+			if(ijBiuTest(dorTop->dorRight,commij))
+				comm2dest=ijBiuGet(dorTop->dorRight,commij);
+		}else{
+			dorbiuSiFlag=0;
+		}
+		if(dorbiuSiFlag!=0){
+			if(brother!=NULL&&brother==switchp&&srcDnp->brother==comm){
+				_add_ports(switchp,srcDnp->brother,ordered_ports,&count);//----take care of it-----//
+				IB_LOG_WARN_FMT(__func__,"zp log : biu biu biu ^_^ !!!");
+			}else if(brother!=NULL&&dorBiuClosure(topop,switchp->swIdx,brother->swIdx)){
+				int broij=DorBitMapsIndex(switchp->swIdx,brother->swIdx);
+				int broRoutingDim=routingDimension(topop, switchp, brother);
+				if(ijBiuTest(dorTop->dorLeft,broij)){
+					firstdormap=dorTop->dorLeft;
+				}
+				if(ijBiuTest(dorTop->dorRight,broij)){
+					firstdormap=dorTop->dorRight;
+				}
+				if(ijBiuTest(dorTop->dorLeft,ij)){
+					seconddormap=dorTop->dorLeft;
+				}
+				if(ijBiuTest(dorTop->dorRight,ij)){
+					seconddormap=dorTop->dorRight;
+				}
+				if(ijBiuGet(firstdormap,broij)+comm2dest<ijBiuGet(seconddormap,ij)){
+					if(ijBiuTest(dorTop->dorLeft,broij)){
+						_add_ports(switchp,srcDnp->left[broRoutingDim]->node,ordered_ports,&count);
+					}
+					if(ijBiuTest(dorTop->dorRight,broij)){
+						_add_ports(switchp,srcDnp->right[broRoutingDim]->node,ordered_ports,&count);
+					}
+					IB_LOG_WARN_FMT(__func__,"zp log : there is a path by biu!");
+				}else{
+					dorbiuSiFlag=0;
+				}
+			}else{
+				dorbiuSiFlag=0;
+			}
+		}
+	}else{
+		dorbiuSiFlag=0;
+	}
+	if(dorbiuSiFlag==0){
+		if (ijBiuTest(dorTop->dorLeft, ij)) {
+			_add_ports(switchp, srcDnp->left[routingDim]->node, ordered_ports, &count);
+		}
+		if (ijBiuTest(dorTop->dorRight, ij)) {
+			_add_ports(switchp, srcDnp->right[routingDim]->node, ordered_ports, &count);
+		}
+	}
 	
 //------------------------------zp stop-----------------------------//
 /*	if (ijBiuTest(dorTop->dorLeft, ij)) {
@@ -2921,12 +2986,12 @@ static Status_t _record_communication_node(Topology_t *topop,DorBiuSiDiscoverySt
 			int i=0;
 			int a2,b2,c2;
 			for(i=3;i<dortopop->numDimensions;i++){	//judge whether swnode1 and swnode2 is in same Si 
-				IB_LOG_WARN_FMT(__func__,"zp log : dimesion--%d , swnode1--%d , swnode2--%d , dimensionLength--%d",i,dorbiusindp1->coords[i],dorbiusindp2->coords[i],dortopop->dimensionLength[i]);
+//				IB_LOG_WARN_FMT(__func__,"zp log : dimesion--%d , swnode1--%d , swnode2--%d , dimensionLength--%d",i,dorbiusindp1->coords[i],dorbiusindp2->coords[i],dortopop->dimensionLength[i]);
 				if((dorbiusindp1->coords[i]-dorbiusindp2->coords[i])%dortopop->dimensionLength[i])break;
 			}
 			if(i==dortopop->numDimensions){			//swnode1 and swnode2 is in same Si
 				for(i=0;i<3;i++){	//judge whether the swnode2 is the communication node of swnode1
-					IB_LOG_WARN_FMT(__func__,"zp log : dimension--%d , com--%d , swnode2--%d , dimensionLength--%d",i,communication_node_map[index-1][j][i+1],dorbiusindp2->coords[i],dortopop->dimensionLength[i]);
+//					IB_LOG_WARN_FMT(__func__,"zp log : dimension--%d , com--%d , swnode2--%d , dimensionLength--%d",i,communication_node_map[index-1][j][i+1],dorbiusindp2->coords[i],dortopop->dimensionLength[i]);
 					if((communication_node_map[index-1][j][i+1]-dorbiusindp2->coords[i])%dortopop->dimensionLength[i])break;		
 				}
 				if(i==3){
