@@ -1407,6 +1407,23 @@ sm_routing_func_select_scvl_map_fixedmap(Topology_t *topop, Node_t *nodep,
     Qos_t *qos = GetQos(out_portp->portData->vl1);
 
     memcpy(outScvlMap, &qos->scvl, sizeof(STL_SCVLMAP));
+
+#ifdef BIU
+			IB_LOG_INFINI_INFO_FMT(__func__,
+						   "SCVL %s ,\t"
+							"%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+							sm_nodeDescString(nodep), 
+							qos->scvl.SCVLMap[0].VL,qos->scvl.SCVLMap[1].VL, qos->scvl.SCVLMap[2].VL,qos->scvl.SCVLMap[3].VL,
+							qos->scvl.SCVLMap[4].VL,qos->scvl.SCVLMap[5].VL, qos->scvl.SCVLMap[6].VL,qos->scvl.SCVLMap[7].VL,
+							qos->scvl.SCVLMap[8].VL,qos->scvl.SCVLMap[9].VL, qos->scvl.SCVLMap[10].VL,qos->scvl.SCVLMap[11].VL,
+							qos->scvl.SCVLMap[12].VL,qos->scvl.SCVLMap[13].VL, qos->scvl.SCVLMap[14].VL,qos->scvl.SCVLMap[15].VL,
+							qos->scvl.SCVLMap[16].VL,qos->scvl.SCVLMap[17].VL, qos->scvl.SCVLMap[18].VL,qos->scvl.SCVLMap[19].VL,
+							qos->scvl.SCVLMap[20].VL,qos->scvl.SCVLMap[21].VL, qos->scvl.SCVLMap[22].VL,qos->scvl.SCVLMap[23].VL,
+							qos->scvl.SCVLMap[24].VL,qos->scvl.SCVLMap[25].VL, qos->scvl.SCVLMap[26].VL,qos->scvl.SCVLMap[27].VL,
+							qos->scvl.SCVLMap[28].VL,qos->scvl.SCVLMap[29].VL, qos->scvl.SCVLMap[30].VL,qos->scvl.SCVLMap[31].VL);
+			
+#endif
+
     return VSTATUS_OK;
 }
 

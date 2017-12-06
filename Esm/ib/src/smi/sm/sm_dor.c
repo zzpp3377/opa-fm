@@ -1536,6 +1536,10 @@ _generate_scsc_map(Topology_t *topop, Node_t *switchp, int getSecondary, int *nu
 								if (crossDateline1 == -1) {
 									crossDateline1 = curBlock++;
 									scsc[crossDateline1].SCSCMap = scscPlus1;
+//---------------------------------------zp start---------------------------------------//									
+//									scsc[crossDateline1].SCSCMap = scscNoChg;
+//---------------------------------------zp stop----------------------------------------//
+
 								}
 								StlAddPortToPortMask(scsc[crossDateline1].IngressPortMask, ingressPortp->index);
 								StlAddPortToPortMask(scsc[crossDateline1].EgressPortMask, p2);
@@ -1543,6 +1547,10 @@ _generate_scsc_map(Topology_t *topop, Node_t *switchp, int getSecondary, int *nu
 								if (crossDateline2 == -1) {
 									crossDateline2 = curBlock++;
 									scsc[crossDateline2].SCSCMap = scscPlus1;
+//---------------------------------------zp start---------------------------------------//									
+//									scsc[crossDateline2].SCSCMap = scscNoChg;
+//---------------------------------------zp stop----------------------------------------//
+
 								}
 								StlAddPortToPortMask(scsc[crossDateline2].IngressPortMask, ingressPortp->index);
 								StlAddPortToPortMask(scsc[crossDateline2].EgressPortMask, p2);

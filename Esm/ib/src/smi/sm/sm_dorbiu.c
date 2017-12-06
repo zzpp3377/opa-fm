@@ -1539,8 +1539,10 @@ _generate_scsc_map(Topology_t *topop, Node_t *switchp, int getSecondary, int *nu
 		}
 	}
 	bitset_free(&linkSLsInuse);
-
-	int	scscSize = sizeof(STL_SCSC_MULTISET) * (6 * dorTop->numDimensions + 2);
+//---------------------------------------zp start------------------------------------//
+//	int	scscSize = sizeof(STL_SCSC_MULTISET) * (6 * dorTop->numDimensions + 2);
+	int	scscSize = sizeof(STL_SCSC_MULTISET) * (6 * dorTop->numDimensions + 2+1);
+//---------------------------------------zp stop-------------------------------------//
 	// Max of 6 ISL SCSC blocks per dimension plus 2 for HFI setup
 	if (vs_pool_alloc(&sm_pool, scscSize, (void *) &scsc) != VSTATUS_OK)
 		return VSTATUS_BAD;
@@ -1618,7 +1620,39 @@ _generate_scsc_map(Topology_t *topop, Node_t *switchp, int getSecondary, int *nu
 		scsc[curBlock].SCSCMap = scsc0;
 		curBlock++;
 	}
+//----------------------------------------zp start-----------------------------------------//
+	//Normal port -> Biu port
+	portToSet = 0;
+	for_all_physical_ports(switchp, ingressPortp) {
+		if (!sm_valid_port(ingressPortp) || ingressPortp->state <= IB_PORT_DOWN) continue;
 
+//		if (!ingressPortp->portData->isIsl) continue;
+
+//		portDim[ingressPortp->index] = get_configured_dimension_for_port(ingressPortp->index);
+//		portPos[ingressPortp->index] = get_configured_port_pos_in_dim(portDim[ingressPortp->index], ingressPortp->index);
+
+		for_all_physical_ports(switchp, egressPortp) {
+			if (!sm_valid_port(egressPortp)) continue;
+
+			if (!egressPortp->portData->isIsl) continue;
+
+			if (egressPortp->index!=sm_config.smDorRouting.dimensionbiu.port||egressPortp->portno!=sm_config.smDorRouting.dimensionbiu.port)continue;
+			
+			if (!ingressPortp->portData->current.scsc ||  sm_config.forceAttributeRewrite ||
+				(memcmp((void *)&scsc0, (void *)&ingressPortp->portData->scscMap[egressPortp->index-1], sizeof(STL_SCSCMAP)) != 0)) {
+
+				StlAddPortToPortMask(scsc[curBlock].IngressPortMask, ingressPortp->index);
+				StlAddPortToPortMask(scsc[curBlock].EgressPortMask, egressPortp->index);
+				portToSet = 1;
+			}
+		}
+	}
+
+	if (portToSet) {
+		scsc[curBlock].SCSCMap = scscNoChg;
+		curBlock++;
+	}
+//----------------------------------------zp stop------------------------------------------//
 	for (dimension=0; dimension<dorTop->numDimensions; dimension++) {
 		datelineSwitch = isDatelineSwitch(topop, switchp, dimension);
 
@@ -1707,6 +1741,10 @@ _generate_scsc_map(Topology_t *topop, Node_t *switchp, int getSecondary, int *nu
 								if (crossDateline1 == -1) {
 									crossDateline1 = curBlock++;
 									scsc[crossDateline1].SCSCMap = scscPlus1;
+//---------------------------------------zp start---------------------------------------//									
+//									scsc[crossDateline1].SCSCMap = scscNoChg;
+//---------------------------------------zp stop----------------------------------------//
+
 								}
 								StlAddPortToPortMask(scsc[crossDateline1].IngressPortMask, ingressPortp->index);
 								StlAddPortToPortMask(scsc[crossDateline1].EgressPortMask, p2);
@@ -1714,6 +1752,10 @@ _generate_scsc_map(Topology_t *topop, Node_t *switchp, int getSecondary, int *nu
 								if (crossDateline2 == -1) {
 									crossDateline2 = curBlock++;
 									scsc[crossDateline2].SCSCMap = scscPlus1;
+//---------------------------------------zp start---------------------------------------//									
+//									scsc[crossDateline2].SCSCMap = scscNoChg;
+//---------------------------------------zp stop----------------------------------------//
+
 								}
 								StlAddPortToPortMask(scsc[crossDateline2].IngressPortMask, ingressPortp->index);
 								StlAddPortToPortMask(scsc[crossDateline2].EgressPortMask, p2);
@@ -1767,7 +1809,7 @@ done:
 			FormatStlPortMask(eports, scsc[i].EgressPortMask, switchp->nodeInfo.NumPorts, 80);
 
 			IB_LOG_INFINI_INFO_FMT(__func__,
-			   "SCSC[%d] %s ingress %s egress %s "
+			   "SCSC[%d] %s ingress %s egress %s ,\t"
 				"%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
 			   	i, sm_nodeDescString(switchp), iports, eports,
 				scscmap[0].SC, scscmap[1].SC, scscmap[2].SC, scscmap[3].SC, scscmap[4].SC, scscmap[5].SC, scscmap[6].SC, scscmap[7].SC,
@@ -2071,6 +2113,9 @@ _get_dor_port_group(Topology_t *topop, Node_t *switchp, Node_t* toSwitchp, uint8
 
 	for (i=0; i<count; i++) {
 		portnos[i] = ordered_ports[i].portp->index;
+//--------------------------------zp start---------------------------//
+//		portnos[i] = ordered_ports[i].portp->index+1;
+//--------------------------------zp stop----------------------------//
 	}
 
 	return count;

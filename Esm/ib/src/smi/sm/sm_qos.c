@@ -862,8 +862,10 @@ GetQos(uint8_t vl)
 {
 	// Range of data VLs is 1 - 31
 	if ((vl>=1) && (vl<STL_MAX_VLS)) {
+		
 		return &sm_Qos[vl];
 	}
+
 	return &sm_Qos[1];
 }
 
@@ -1102,6 +1104,7 @@ WriteGen1SCSC(Topology_t * topop, Node_t * switchp, STL_LID dlid,  int numScscBl
 						if (!sm_valid_port(swportp)) continue;
 						for (e=egress; e<=lastEgress; e++) {
 							swportp->portData->scscMap[e-1] = scsc[b].SCSCMap;
+
 						}
 						swportp->portData->current.scsc = 1;
 					}
@@ -4350,6 +4353,17 @@ sm_select_slsc_map(Topology_t *topop, Node_t *nodep,
 		if (bitset_test(&sm_linkSLsInuse, sl))
 			slsc.SLSCMap[sl].SC = sm_SLtoSC[sl];
 	}
+#ifdef BIU
+	IB_LOG_INFINI_INFO_FMT(__func__,
+				   "SLSC %s ,\t"
+					"%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+					sm_nodeDescString(nodep), 
+					slsc.SLSCMap[0].SC,slsc.SLSCMap[1].SC, slsc.SLSCMap[2].SC,slsc.SLSCMap[3].SC,slsc.SLSCMap[4].SC,slsc.SLSCMap[5].SC, slsc.SLSCMap[6].SC,slsc.SLSCMap[7].SC,
+					slsc.SLSCMap[8].SC,slsc.SLSCMap[9].SC, slsc.SLSCMap[10].SC,slsc.SLSCMap[11].SC,slsc.SLSCMap[12].SC,slsc.SLSCMap[13].SC, slsc.SLSCMap[14].SC,slsc.SLSCMap[15].SC,
+					slsc.SLSCMap[16].SC,slsc.SLSCMap[17].SC, slsc.SLSCMap[18].SC,slsc.SLSCMap[19].SC,slsc.SLSCMap[20].SC,slsc.SLSCMap[21].SC, slsc.SLSCMap[22].SC,slsc.SLSCMap[23].SC,
+					slsc.SLSCMap[24].SC,slsc.SLSCMap[25].SC, slsc.SLSCMap[26].SC,slsc.SLSCMap[27].SC,slsc.SLSCMap[28].SC,slsc.SLSCMap[29].SC, slsc.SLSCMap[30].SC,slsc.SLSCMap[31].SC);
+	
+#endif
 
 	memcpy(outSlscMap, &slsc, sizeof(STL_SLSCMAP));
 	return VSTATUS_OK;
@@ -4392,6 +4406,18 @@ sm_select_scsl_map(Topology_t *topop, Node_t *nodep,
 		} else
 			scsl.SCSLMap[sc].SL = sl;
 	}
+	
+#ifdef BIU
+IB_LOG_INFINI_INFO_FMT(__func__,
+			   "SCSL %s ,\t"
+				"%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+			   	sm_nodeDescString(nodep), 
+				scsl.SCSLMap[0].SL,scsl.SCSLMap[1].SL, scsl.SCSLMap[2].SL,scsl.SCSLMap[3].SL,scsl.SCSLMap[4].SL,scsl.SCSLMap[5].SL, scsl.SCSLMap[6].SL,scsl.SCSLMap[7].SL,
+				scsl.SCSLMap[8].SL,scsl.SCSLMap[9].SL, scsl.SCSLMap[10].SL,scsl.SCSLMap[11].SL,scsl.SCSLMap[12].SL,scsl.SCSLMap[13].SL, scsl.SCSLMap[14].SL,scsl.SCSLMap[15].SL,
+				scsl.SCSLMap[16].SL,scsl.SCSLMap[17].SL, scsl.SCSLMap[18].SL,scsl.SCSLMap[19].SL,scsl.SCSLMap[20].SL,scsl.SCSLMap[21].SL, scsl.SCSLMap[22].SL,scsl.SCSLMap[23].SL,
+				scsl.SCSLMap[24].SL,scsl.SCSLMap[25].SL, scsl.SCSLMap[26].SL,scsl.SCSLMap[27].SL,scsl.SCSLMap[28].SL,scsl.SCSLMap[29].SL, scsl.SCSLMap[30].SL,scsl.SCSLMap[31].SL);
+
+#endif
 
 	memcpy(outScslMap, &scsl, sizeof(STL_SCSLMAP));
 	return VSTATUS_OK;
